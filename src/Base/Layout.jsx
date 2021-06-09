@@ -1,6 +1,6 @@
 import './Layout.css'
 import Court from './baddy_crt.jpg'
-import  {
+import {
     useEffect,
     useRef,
     useState
@@ -29,6 +29,8 @@ import {
     BiUndo,
     BsSquare,
     BsTriangle,
+    GiMagnifyingGlass,
+    GiShuttlecock,
     GrClear,
     IoEllipseOutline,
     RiSubtractLine
@@ -66,13 +68,20 @@ export default function Layout() {
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null)
 
-    // Create State Variable for Canvas Dimensions
-    const [canvasMeta, setCanvasMeta] = useState({
-        offsetX: 0,
-        offsetY: 0,
-        height: 0,
-        width: 0
-    })
+    // Simulation Related State Variables
+    // Boolean value to show lines on click
+    const [showRefLines, setShowRefLines] = useState(true)
+
+    // Store references of lines that are drawn as reference lines
+    const [refLineX, setRefLineX] = useState(null)
+    const [refLineY, setRefLineY] = useState(null)
+
+    // Array to store all shots played
+    const [shotArray, setShotArray] = useState([])
+
+    // Variable to tell in which half was last point placed
+    let lastPointPlacedY;
+
 
     // Function for Loading Canvas (Call Init Canvas after setting new dimensions)
     const loadCanvas = () => {
@@ -81,21 +90,14 @@ export default function Layout() {
             boxW: boxDiv.current.clientWidth,
             boxH: boxDiv.current.clientHeight
         })
-        let refCanvas = initCanvas()
-        setCanvasMeta({
-            offsetX: refCanvas._offset.left,
-            offsetY: refCanvas._offset.top,
-            height: refCanvas.height,
-            width: refCanvas.width
-        })
-        console.log(canvasMeta)
-        setCanvas(refCanvas)
+        setCanvas(initCanvas())
 
     }
 
     // Check for change in Dimensions
     useEffect(() => {
         loadCanvas()
+        // eslint-disable-next-line
     }, [boxDiv.current])
 
     // Create a Mode Variable to Highlight which mode is active
@@ -106,8 +108,16 @@ export default function Layout() {
     let startX = 0
     let startY = 0
 
+    // Create a Function that clears all Mouse listeners
+    const clearMouseListeners = () => {
+        canvas.off('mouse:down')
+        canvas.off('mouse:move')
+        canvas.off('mouse:up')
+    }
+
     // Add Circle Object to canvas
     const addCircle = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         // canvas.__eventListeners = {}
         setMode('Circle')
@@ -151,9 +161,7 @@ export default function Layout() {
         })
         canvas.on('mouse:up', () => {
             isDown = false
-            canvas.off('mouse:down')
-            canvas.off('mouse:move')
-            canvas.off('mouse:up')
+            clearMouseListeners()
             canvas.getObjects().forEach((object) => {
                 // console.log(object)
                 object.set({
@@ -167,6 +175,7 @@ export default function Layout() {
 
     // Add Rectangle Object to Canvas
     const addRectangle = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         // canvas.__eventListeners = {}
         setMode('Rectangle/Square')
@@ -209,9 +218,7 @@ export default function Layout() {
         })
         canvas.on('mouse:up', (event) => {
             isDown = false
-            canvas.off('mouse:down')
-            canvas.off('mouse:move')
-            canvas.off('mouse:up')
+            clearMouseListeners()
             canvas.getObjects().forEach((object) => {
                 // console.log(object)
                 object.set({
@@ -225,6 +232,7 @@ export default function Layout() {
 
     // Add Ellipse Object to Canvas
     const addEllipse = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         // canvas.__eventListeners = {}
         setMode('Ellipse')
@@ -270,9 +278,7 @@ export default function Layout() {
         })
         canvas.on('mouse:up', (event) => {
             isDown = false
-            canvas.off('mouse:down')
-            canvas.off('mouse:move')
-            canvas.off('mouse:up')
+            clearMouseListeners()
             canvas.getObjects().forEach((object) => {
                 // console.log(object)
                 object.set({
@@ -286,6 +292,7 @@ export default function Layout() {
 
     // Add Triangle Object to Canvas
     const addTriangle = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         // canvas.__eventListeners = {}
         setMode('Triangle')
@@ -326,11 +333,9 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
-        canvas.on('mouse:up', (event) => {
+        canvas.on('mouse:up', () => {
             isDown = false
-            canvas.off('mouse:down')
-            canvas.off('mouse:move')
-            canvas.off('mouse:up')
+            clearMouseListeners()
             canvas.getObjects().forEach((object) => {
                 object.set({
                     selectable: true
@@ -343,6 +348,7 @@ export default function Layout() {
 
     // Add Line Object to Canvas
     const addLine = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         // canvas.__eventListeners = {}
         setMode('Line')
@@ -380,12 +386,10 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
-        canvas.on('mouse:up', (event) => {
+        canvas.on('mouse:up', () => {
             isDown = false
             line.setCoords()
-            canvas.off('mouse:down')
-            canvas.off('mouse:move')
-            canvas.off('mouse:up')
+            clearMouseListeners()
             canvas.getObjects().forEach((object) => {
                 object.set({
                     selectable: true
@@ -399,29 +403,34 @@ export default function Layout() {
     // Add Free Drawing to Canvas
     const freeDraw = () => {
         setMode('Draw')
+        clearMouseListeners()
         canvas.isDrawingMode = true
     }
 
     // Add Pointer Mode to Canvas
     const pointerMode = () => {
+        // clearMouseListeners()
         setMode('Pointer')
         canvas.isDrawingMode = false
     }
 
     // Add Undo to Canvas
     const undoHistory = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         canvas.undo()
     }
 
     // Add Redo to Canvas
     const redoHistory = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         canvas.redo()
     }
 
     // Add Delete to Canvas
     const deleteItem = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         let activeObject = canvas.getActiveObject()
 
@@ -432,6 +441,7 @@ export default function Layout() {
 
     // Add ClearHistory to Canvas
     const clearCanvas = () => {
+        clearMouseListeners()
         canvas.isDrawingMode = false
         let objects = canvas.getObjects()
         for (var i = 0; i < objects.length; i++) {
@@ -503,10 +513,141 @@ export default function Layout() {
         }
     ]
 
+    // Following Code is related to Simulation, all functions henceforth do either Animations
+    // or are responsible for creating Rallies and movement of objects on the Canvas
+
+    // Recognize Vertical Midpoint of Canvas using a Function
+    const findMidOfCanvas = () => {
+        setShowRefLines(!showRefLines)
+        console.log(showRefLines)
+        let midX = parseInt(dims.boxW / 2)
+        let midY = parseInt(dims.boxH / 2)
+        console.log(dims, midX, midY)
+
+        // Create 2 lines that give estimate of reference points of court
+        var horizontalLine = new fabric.Line([0, midY, dims.boxW, midY], {
+            selectable: true,
+            fill: 'transparent',
+            stroke: 'blue',
+            strokeWidth: 3,
+        })
+        var verticalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
+            selectable: true,
+            fill: 'transparent',
+            stroke: 'red',
+            strokeWidth: 3,
+        })
+        if (showRefLines) {
+            setMode('Check')
+            setRefLineX(horizontalLine)
+            setRefLineY(verticalLine)
+            canvas.add(horizontalLine)
+            canvas.add(verticalLine)
+        }
+        else {
+            setMode('none')
+            canvas.remove(refLineX)
+            canvas.remove(refLineY)
+        }
+    }
+
+    // Function that takes Y co-ordinate as input and returns in which half point lies
+    // If Y is in Lower Half, return 2
+    // If Y is in Upper Half, return 1
+    const checkHalfVertical = (YValue) => {
+        if (YValue > (dims.boxH/2)) {
+            return 2
+        } else {
+            return 1
+        }
+    }
+
+    // Function to create rally
+    // 1st point can be anywhere on canvas
+    // 2nd point onwards, point has to be on other side of current selected point
+    const constructRally = () => {
+        console.log(shotArray)
+        clearMouseListeners()
+        setMode('Rally')
+        canvas.on('mouse:down', (event) => {
+            let currentX = canvas.getPointer(event.e).x
+            let currentY = canvas.getPointer(event.e).y
+            
+            // If array is empty, then do not check where Point has been placed
+            if (shotArray.length === 0) {
+                let circle = new fabric.Circle({
+                    radius: 6,
+                    left: currentX - 3,
+                    top: currentY - 3,
+                    fill: 'red',
+                    selectable: false,
+                    stroke: 'red',
+                    strokeWidth: 1
+                })
+                canvas.add(circle)
+                setShotArray({
+                    shotArray: shotArray.push({
+                        x: currentX,
+                        y: currentY
+                    })
+                })
+                // Set lastPointPlacedY value
+                lastPointPlacedY = checkHalfVertical(currentY)
+                console.log(shotArray)
+                console.log(lastPointPlacedY)
+            } 
+            // Otherwise check in which half last Point was recorded
+            else if (shotArray.length > 0) {
+                let currPointLocY = checkHalfVertical(currentY)
+                console.log(currPointLocY, lastPointPlacedY)
+                if ((currPointLocY === lastPointPlacedY)) {
+                    // Do nothing
+                } else {
+                    let circle = new fabric.Circle({
+                        radius: 6,
+                        left: currentX - 3,
+                        top: currentY - 3,
+                        fill: 'red',
+                        selectable: false,
+                        stroke: 'red',
+                        strokeWidth: 1
+                    })
+                    setShotArray({
+                        shotArray: shotArray.push({
+                            x: currentX,
+                            y: currentY
+                        })
+                    })
+                    
+                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y, 
+                        shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y],{
+                            stroke: 'blue',
+                            strokeWidth: 4,
+                            selectable: false,
+                        })
+                    canvas.add(line)
+                    canvas.add(circle)
+                    // Set lastPointPlacedY value
+                    lastPointPlacedY = checkHalfVertical(currentY)
+                    console.log(lastPointPlacedY)
+                    console.log(shotArray) 
+                }
+            }
+        })
+        
+    }
+
     // Simulation Menu
     const simulationMenu = [
         {
-
+            name: 'Check',
+            icon: <GiMagnifyingGlass />,
+            func: findMidOfCanvas,
+        },
+        {
+            name: 'Rally',
+            icon: <GiShuttlecock />,
+            func: constructRally,
         }
     ]
 
@@ -558,7 +699,7 @@ export default function Layout() {
                             </Center>
                             <Stack direction={["row", "column"]}>
                                 {
-                                    controlsmenu.map((item) => {
+                                    simulationMenu.map((item) => {
                                         return (
                                             <Tooltip key={item.name} label={item.name}>
                                                 <Button px={'1vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
