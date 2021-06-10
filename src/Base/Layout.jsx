@@ -23,8 +23,10 @@ import 'fabric-history'
 import {
     BiCircle,
     BiEdit,
+    BiGridSmall,
     BiPointer,
     BiRedo,
+    BiText,
     BiTrash,
     BiUndo,
     BsSquare,
@@ -39,6 +41,12 @@ import {
 // Layout Function has Layout of Court as well as controls
 
 export default function Layout() {
+
+    /** 
+     * Following State Variables are required to Draw Canvas,
+     * its height, width, etc.
+    */
+
     // Create Reference to parent Box
     const boxDiv = useRef(null)
 
@@ -48,27 +56,13 @@ export default function Layout() {
         boxH: 0.1
     })
 
-    //Init Canvas every time reload happens
-    const initCanvas = () => {
-        // console.log(dims)
-        const canvas = new fabric.Canvas('canvas', {
-            height: dims.boxH,
-            width: dims.boxW,
-        })
-        fabric.Image.fromURL(Court, function (img) {
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-                scaleX: canvas.width / img.width,
-                scaleY: canvas.height / img.height,
-            })
-        })
-        // console.log(canvas)
-        return canvas
-    }
-
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null)
 
-    // Simulation Related State Variables
+    /**  
+     * Simulation Related State Variables
+    */
+
     // Boolean value to show lines on click
     const [showRefLines, setShowRefLines] = useState(true)
 
@@ -79,47 +73,105 @@ export default function Layout() {
     // Array to store all shots played
     const [shotArray, setShotArray] = useState([])
 
+    // Store Gridlines and their values
+    const [gridLines, setGridlines] = useState({
+        show: true,
+        numRows: 0,
+        numColumns: 0,
+    })
+
+    const [gridLineRefs, setGridLineRefs] = useState([])
+
     // Variable to tell in which half was last point placed
-    let lastPointPlacedY;
+    var [lastY, setLastY] = useState(0)
 
+    /**
+     * Common State Variables
+     */
 
-    // Function for Loading Canvas (Call Init Canvas after setting new dimensions)
+    // Create a Mode Variable to Highlight which mode is active
+    const [mode, setMode] = useState('Pointer')
+
+    /**
+     * Variables for Drawing Objects
+     */
+
+    let isDown = false
+    let startX = 0
+    let startY = 0
+
+    /**
+     * Initialize Canvas every time reload happens
+     * @updates {canvas}
+     * @returns canvas with appropriate height and width
+     */
+
+    const initCanvas = () => {
+        const canvas = new fabric.Canvas('canvas', {
+            height: dims.boxH,
+            width: dims.boxW,
+        })
+        fabric.Image.fromURL(Court, function (img) {
+            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+                scaleX: canvas.width / img.width,
+                scaleY: canvas.height / img.height,
+            })
+        })
+        return canvas
+    }
+
+    /**
+     * Get Parent Dimensions of Canvas
+     * and call initCanvas()
+     * @updates {canvas}
+     * @wrapper for initCanvas()
+     * @returns none
+     */
+
     const loadCanvas = () => {
-        // console.log(boxDiv)
         setDims({
             boxW: boxDiv.current.clientWidth,
             boxH: boxDiv.current.clientHeight
         })
         setCanvas(initCanvas())
-
     }
 
-    // Check for change in Dimensions
+    /**
+     * @listens boxDiv
+     * Reloads Canvas on Change in Dimensions
+     * @returns none
+     */
+
     useEffect(() => {
         loadCanvas()
         // eslint-disable-next-line
     }, [boxDiv.current])
 
-    // Create a Mode Variable to Highlight which mode is active
-    const [mode, setMode] = useState('Pointer')
+    /**
+     * Clears all Mouse Events for canvas
+     * @updates {canvas}
+     * @returns none
+     */
 
-    // Variables for Drawing Objects
-    let isDown = false
-    let startX = 0
-    let startY = 0
-
-    // Create a Function that clears all Mouse listeners
     const clearMouseListeners = () => {
         canvas.off('mouse:down')
         canvas.off('mouse:move')
         canvas.off('mouse:up')
     }
 
-    // Add Circle Object to canvas
+    /**
+     * Draws Circle on Canvas with moving animation
+     * As per pointer on screen
+     * Uses only X value as radius, main differentiating factor between
+     * Circle and Ellipse
+     * Creates 1 circle and changes mode
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
     const addCircle = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
-        // canvas.__eventListeners = {}
         setMode('Circle')
         let circle;
 
@@ -159,25 +211,32 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
+
         canvas.on('mouse:up', () => {
             isDown = false
             clearMouseListeners()
             canvas.getObjects().forEach((object) => {
-                // console.log(object)
                 object.set({
                     selectable: true
                 })
             })
+
             setMode('none')
             return
         })
     }
 
-    // Add Rectangle Object to Canvas
+    /**
+     * Draws Rectangle/Square on Canvas with moving animation
+     * As per pointer on screen
+     * Creates 1 rectangle and changes mode
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
     const addRectangle = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
-        // canvas.__eventListeners = {}
         setMode('Rectangle/Square')
         var rectangle;
 
@@ -216,6 +275,7 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
+
         canvas.on('mouse:up', (event) => {
             isDown = false
             clearMouseListeners()
@@ -225,16 +285,25 @@ export default function Layout() {
                     selectable: true
                 })
             })
+
             setMode('none')
             return
         })
     }
 
-    // Add Ellipse Object to Canvas
+    /**
+     * Draws Ellipse on Canvas with moving animation
+     * As per pointer on screen
+     * Uses X and Y values for drawing Ellipse
+     * Creates 1 Ellipse and changes mode
+     * @returns none
+     * @updates {canvas, mode}
+     */
+    
+
     const addEllipse = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
-        // canvas.__eventListeners = {}
         setMode('Ellipse')
         var ellipse;;
 
@@ -276,25 +345,33 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
+
         canvas.on('mouse:up', (event) => {
             isDown = false
             clearMouseListeners()
             canvas.getObjects().forEach((object) => {
-                // console.log(object)
                 object.set({
                     selectable: true
                 })
             })
+
             setMode('none')
             return
         })
     }
 
-    // Add Triangle Object to Canvas
+    /**
+     * Draws Triangle on Canvas with moving animation
+     * As per pointer on screen
+     * Uses X and Y values for drawing Triangle
+     * Creates 1 Triangle and changes mode
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
     const addTriangle = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
-        // canvas.__eventListeners = {}
         setMode('Triangle')
         var triangle;
 
@@ -333,6 +410,7 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
+
         canvas.on('mouse:up', () => {
             isDown = false
             clearMouseListeners()
@@ -341,16 +419,24 @@ export default function Layout() {
                     selectable: true
                 })
             })
+
             setMode('none')
             return
         })
     }
 
-    // Add Line Object to Canvas
+    /**
+     * Draws Line on Canvas with moving animation
+     * As per pointer on screen
+     * Uses X and Y values for drawing Line
+     * Creates 1 Line and changes mode
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
     const addLine = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
-        // canvas.__eventListeners = {}
         setMode('Line')
         var line;
 
@@ -386,6 +472,7 @@ export default function Layout() {
                 canvas.renderAll()
             }
         })
+
         canvas.on('mouse:up', () => {
             isDown = false
             line.setCoords()
@@ -395,40 +482,115 @@ export default function Layout() {
                     selectable: true
                 })
             })
+
             setMode('none')
             return
         })
     }
 
-    // Add Free Drawing to Canvas
+    /**
+     * Creates free Drawing Mode on Canvas
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
     const freeDraw = () => {
         setMode('Draw')
         clearMouseListeners()
         canvas.isDrawingMode = true
     }
 
-    // Add Pointer Mode to Canvas
+    /**
+     * Activates Pointer Mode on Canvas
+     * This is Default mode
+     * @updates {canvas, mode}
+     */
+
     const pointerMode = () => {
-        // clearMouseListeners()
+        clearMouseListeners()
         setMode('Pointer')
         canvas.isDrawingMode = false
     }
 
-    // Add Undo to Canvas
+    /**
+     * Adds a text box to Canvas
+     * Uses current X and Y values to place the text box
+     * @returns none
+     * @updates {canvas, mode}
+     */
+
+    // Add Text to canvas
+    const addText = () => {
+        clearMouseListeners()
+        canvas.isDrawingMode = false
+        // canvas.__eventListeners = {}
+        setMode('Text')
+        var text;
+
+        canvas.getObjects().forEach((object) => {
+            object.set({
+                selectable: false
+            })
+        })
+
+        canvas.on('mouse:down', (event) => {
+            startX = canvas.getPointer(event.e).x
+            startY = canvas.getPointer(event.e).y
+            text = new fabric.IText('Tap and Type', {
+                fontFamily: 'arial black',
+                left: startX,
+                top: startY,
+                fontSize: 30,
+
+            })
+
+            canvas.add(text)
+        })
+
+        canvas.on('mouse:up', () => {
+            canvas.getObjects().forEach((object) => {
+                object.set({
+                    selectable: true
+                })
+            })
+
+            setMode('none')
+            clearMouseListeners()
+        })
+    }
+
+    /**
+     * Undo operation on Canvas
+     * Removes the last Object Modification which is added
+     * @returns none
+     * @updates {canvas}
+     */
+
     const undoHistory = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
         canvas.undo()
     }
 
-    // Add Redo to Canvas
+    /**
+     * Undo operation on Canvas
+     * Adds the last Object Modification which is removed
+     * @returns none
+     * @updates {canvas}
+     */
+
     const redoHistory = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
         canvas.redo()
     }
 
-    // Add Delete to Canvas
+    /**
+     * Deletes Selected Item from Canvas
+     * @returns none
+     * @updates {canvas}
+     */
+
     const deleteItem = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
@@ -439,7 +601,12 @@ export default function Layout() {
         }
     }
 
-    // Add ClearHistory to Canvas
+    /**
+     * Removes all objects from Canvas
+     * @returns none
+     * @updates {canvas}
+     */
+
     const clearCanvas = () => {
         clearMouseListeners()
         canvas.isDrawingMode = false
@@ -450,7 +617,11 @@ export default function Layout() {
         canvas.renderAll()
     }
 
-    // Drawing Controls Menu
+    /**
+     * Controls Menu
+     * Calls all above functions as per options
+     */
+
     const controlsmenu = [
         {
             name: 'Draw',
@@ -488,6 +659,11 @@ export default function Layout() {
             func: addLine,
         },
         {
+            name: 'Text',
+            icon: <BiText />,
+            func: addText,
+        },
+        {
             name: 'Undo',
             icon: <BiUndo />,
             func: undoHistory,
@@ -513,10 +689,18 @@ export default function Layout() {
         }
     ]
 
-    // Following Code is related to Simulation, all functions henceforth do either Animations
-    // or are responsible for creating Rallies and movement of objects on the Canvas
+    /**
+     * Following Code is related to Simulation, all functions henceforth do either Animations 
+     * or are responsible for creating Rallies and movement of objects on the Canvas
+     */
 
-    // Recognize Vertical Midpoint of Canvas using a Function
+    /**
+     * Given Dimensions of Canvas (Or Precisely of Badminton Court)
+     * Find MidpointX and MidPointY
+     * @returns none
+     * @updates {canvas, mode, refLineX, refLineY, dims}
+     */
+
     const findMidOfCanvas = () => {
         setShowRefLines(!showRefLines)
         console.log(showRefLines)
@@ -526,16 +710,16 @@ export default function Layout() {
 
         // Create 2 lines that give estimate of reference points of court
         var horizontalLine = new fabric.Line([0, midY, dims.boxW, midY], {
-            selectable: true,
-            fill: 'transparent',
-            stroke: 'blue',
-            strokeWidth: 3,
-        })
-        var verticalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
-            selectable: true,
+            selectable: false,
             fill: 'transparent',
             stroke: 'red',
-            strokeWidth: 3,
+            strokeWidth: 5,
+        })
+        var verticalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
+            selectable: false,
+            fill: 'transparent',
+            stroke: 'red',
+            strokeWidth: 5,
         })
         if (showRefLines) {
             setMode('Check')
@@ -551,98 +735,238 @@ export default function Layout() {
         }
     }
 
-    // Function that takes Y co-ordinate as input and returns in which half point lies
-    // If Y is in Lower Half, return 2
-    // If Y is in Upper Half, return 1
+    /**
+     * Checks Value given and returns in which half
+     * the value resides vertically
+     * @param {number} YValue <Height of Canvas> 
+     * @returns {2} if YValue is in lower half
+     * @returns {1} if YValue is in upper half
+     * @updates none
+     */
+
     const checkHalfVertical = (YValue) => {
-        if (YValue > (dims.boxH/2)) {
+        if (YValue > (dims.boxH / 2)) {
             return 2
         } else {
             return 1
         }
     }
 
-    // Function to create rally
-    // 1st point can be anywhere on canvas
-    // 2nd point onwards, point has to be on other side of current selected point
+    /**
+     * Creates Rally where user can select any point on court
+     * after which he has to select a point on Vertically opposite side 
+     * of current point if Canvas was divided into 2 vertical zones
+     * @updates {shotArray, lastY}
+     * @returns none
+     * 
+     * Problem : (Resolved) => Solution was to change how values were pushed in State Variable
+     * Rally Construction works fine when we constantly keep on updating and moving the rally
+     * Problem arises when any other component is used with this component, ie. adding some Normal
+     * Components like Circle, Square, Triangle, etc.
+     * 
+     * When those components are used and again this method is called, only the length of the object 
+     * is recovered from previous state, this means that even if a new rally is created, only the new points are
+     * recorded in the rally. It prevents user from having full data. It does not work with State Variable, nor a 
+     * simple array, this needs to be resolved with high priority
+     */
+
     const constructRally = () => {
-        console.log(shotArray)
         clearMouseListeners()
         setMode('Rally')
         canvas.on('mouse:down', (event) => {
             let currentX = canvas.getPointer(event.e).x
             let currentY = canvas.getPointer(event.e).y
-            
+
             // If array is empty, then do not check where Point has been placed
             if (shotArray.length === 0) {
+                
+                shotArray.push({
+                    x: currentX,
+                    y: currentY
+                })
+                setShotArray([...shotArray])
+
                 let circle = new fabric.Circle({
                     radius: 6,
                     left: currentX - 3,
                     top: currentY - 3,
-                    fill: 'red',
+                    fill: 'black',
                     selectable: false,
-                    stroke: 'red',
+                    stroke: 'black',
                     strokeWidth: 1
                 })
-                canvas.add(circle)
-                setShotArray({
-                    shotArray: shotArray.push({
-                        x: currentX,
-                        y: currentY
-                    })
+                
+                let text = new fabric.IText(shotArray.length + '', {
+                    fontFamily: 'arial black',
+                    left: currentX + 12,
+                    top: currentY,
+                    fontSize: 20,
+                    editable: false,
+                    selectable: false
                 })
-                // Set lastPointPlacedY value
-                lastPointPlacedY = checkHalfVertical(currentY)
-                console.log(shotArray)
-                console.log(lastPointPlacedY)
-            } 
+
+                canvas.add(text)
+                canvas.add(circle)
+
+                // Set lastY value
+                lastY = checkHalfVertical(currentY)
+                setLastY(lastY)
+                console.log("Last", lastY, " Last Func : ", checkHalfVertical(currentY))
+            }
             // Otherwise check in which half last Point was recorded
             else if (shotArray.length > 0) {
                 let currPointLocY = checkHalfVertical(currentY)
-                console.log(currPointLocY, lastPointPlacedY)
-                if ((currPointLocY === lastPointPlacedY)) {
-                    // Do nothing
+                console.log("current ", currPointLocY)
+                console.log("Compare ", currPointLocY, lastY)
+
+                if ((currPointLocY === lastY)) {
+                    // Do nothing, as selected point
+                    // is not on opposite vertical half
+                    // Invalid Point Selected
                 } else {
+
+                    shotArray.push({
+                        x: currentX,
+                        y: currentY
+                    })
+                    setShotArray([...shotArray])
+                    
                     let circle = new fabric.Circle({
                         radius: 6,
                         left: currentX - 3,
                         top: currentY - 3,
-                        fill: 'red',
+                        fill: 'black',
                         selectable: false,
-                        stroke: 'red',
+                        stroke: 'black',
                         strokeWidth: 1
                     })
-                    setShotArray({
-                        shotArray: shotArray.push({
-                            x: currentX,
-                            y: currentY
-                        })
+
+                    let text = new fabric.IText(shotArray.length + '', {
+                        fontFamily: 'arial black',
+                        left: currentX + 12,
+                        top: currentY,
+                        fontSize: 20,
+                        editable: false,
+                        selectable: false
                     })
-                    
-                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y, 
-                        shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y],{
-                            stroke: 'blue',
-                            strokeWidth: 4,
-                            selectable: false,
-                        })
+
+                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y,
+                    shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y], {
+                        stroke: 'red',
+                        strokeWidth: 2,
+                        selectable: false,
+                    })
+
+                    canvas.add(text)
                     canvas.add(line)
                     canvas.add(circle)
-                    // Set lastPointPlacedY value
-                    lastPointPlacedY = checkHalfVertical(currentY)
-                    console.log(lastPointPlacedY)
-                    console.log(shotArray) 
+
+                    // Set lastY value
+                    lastY = checkHalfVertical(currentY)
+                    setLastY(lastY)
                 }
             }
         })
-        
+
     }
 
-    // Simulation Menu
+    /**
+     * 
+     * @param {number} numRows <Number of Rows to Divided into>
+     * @param {number} numColumns <Number of Columns to Divided into>
+     * @returns none
+     * @updates {gridLines.numColumns, gridLines.numRows, gridLineRefs}
+     * @todo Last 2 lines not yet visible => Done
+     */
+
+    const initGridLines = (numRows, numColumns) => {
+        setGridlines({
+            numColumns: numColumns,
+            numRows: numRows,
+        })
+
+        let incrementValueX = (dims.boxW - 6) / numRows
+        let incrementValueY = (dims.boxH - 6) / numColumns
+
+        // Get Dimensions for each Grid Box
+
+        // for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
+        //     for (let j = 3; j <= dims.boxH; j = j + incrementValueY) {
+        //         console.log(i, j, dims.boxW, dims.boxH)
+        //     }
+        // }
+
+        for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
+            let line = new fabric.Line([i, 0, i, dims.boxH], {
+                selectable: false,
+                stroke: '#ffaa99',
+                strokeWidth: 3,
+                strokeDashArray: [15, 15]
+            })
+            console.log(i)
+            gridLineRefs.push(line)
+            setGridLineRefs([...gridLineRefs])
+        }
+
+        for (let j = 3; j <= dims.boxH; j = j + incrementValueY) {
+            let line = new fabric.Line([0, j, dims.boxW, j], {
+                selectable: false,
+                stroke: '#ffaa99',
+                strokeWidth: 3,
+                strokeDashArray: [15, 15]
+            })
+            gridLineRefs.push(line)
+            setGridLineRefs([...gridLineRefs])
+        }
+    }
+
+    /**
+     * @param {number} numRows <Number of Rows to Divided into>
+     * @param {number} numColumns <Number of Columns to Divided into>
+     * @returns none
+     * @updates {gridLines.show, canvas}
+     */
+
+    // Show Gridlines (Given N*M grid size)
+    const showGrids = (numRows, numColumns) => {
+        setMode('Grids')
+        if (gridLines.numColumns === 0 && gridLines.numRows === 0) {
+            initGridLines(4, 4) // Should be taken during execution
+        }
+
+        setGridlines({
+            show: !gridLines.show
+        })
+
+        if (gridLines.show) {
+            for (let i = 0; i < gridLineRefs.length; i++) {
+                // console.log(gridLineRefs[i])
+                canvas.add(gridLineRefs[i])
+            }
+        }
+        else {
+            setMode('none')
+            for (let i = 0; i < gridLineRefs.length; i++) {
+                canvas.remove(gridLineRefs[i])
+            }
+        }
+    }
+
+    /**
+     * Simulation Menu consists of Controls for 
+     * Simulation of rallies
+     */
+
     const simulationMenu = [
         {
             name: 'Check',
             icon: <GiMagnifyingGlass />,
             func: findMidOfCanvas,
+        },
+        {
+            name: 'Grids',
+            icon: <BiGridSmall />,
+            func: showGrids,
         },
         {
             name: 'Rally',
