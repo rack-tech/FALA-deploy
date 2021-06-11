@@ -76,6 +76,7 @@ export default function Layout() {
         numRallies: 0,
         currentActiveIndex: -1,
         rallies: [{
+            name: '',
             lastY: 0,
             shots: []
         }]
@@ -852,7 +853,7 @@ export default function Layout() {
      * Creates Rally where user can select any point on court
      * after which he has to select a point on Vertically opposite side 
      * of current point if Canvas was divided into 2 vertical zones
-     * @updates {arrayOfRallies, rallyLastY}
+     * @updates {arrayOfRallies}
      * @returns none
      * @todo Add support for multiple rallies to be used
      *       which will have different colors for lines
@@ -876,14 +877,16 @@ export default function Layout() {
         // Check if Any rallies are present or not
         // If not, then just create one
         if (arrayOfRallies.numRallies === 0) {
-            console.log("INITIALING NUMRALLIES")
+
+            // Setting State Variables differently
             arrayOfRallies.numRallies = arrayOfRallies.numRallies + 1
             arrayOfRallies.currentActiveIndex = 0
+
             setArrayOfRallies({
                 numRallies: arrayOfRallies.numRallies,
                 currentActiveIndex: arrayOfRallies.currentActiveIndex
             })
-            console.log(arrayOfRallies.numRallies, arrayOfRallies.currentActiveIndex)
+
         }
 
         clearMouseListeners()
