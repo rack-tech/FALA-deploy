@@ -92,14 +92,19 @@ export default function Layout() {
     // Store Gridline references
     const [gridLineRefs, setGridLineRefs] = useState([])
 
-    // Array to store Footwork patterns
-    const [footworkArray, setFootworkArray] = useState([])
+    // Array to store all footwork patterns
+    var [arrayOfFootwork, setArrayOfFootwork] = useState({
+        numFootworks: 0,
+        currentActiveIndex: -1,
+        footworks: [{
+            name: '',
+            lastY: 0,
+            movements: []
+        }]
+    })
 
-    // Variable to tell rally in which half was last point placed
-    var [rallyLastY, setRallyLastY] = useState(0)
 
     // Variable to tell footwork in which half action is happening
-    var [footworkLastY] = useState(0)
 
     /**
      * Common State Variables
@@ -895,7 +900,6 @@ export default function Layout() {
             let currentX = canvas.getPointer(event.e).x
             let currentY = canvas.getPointer(event.e).y
 
-            console.log(arrayOfRallies.currentActiveIndex)
             // If array is empty, then do not check where Point has been placed
             if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length === 0) {
 
@@ -904,7 +908,7 @@ export default function Layout() {
                     y: currentY
                 })
 
-                // Set rallyLastY value
+                // Set lastY value
                 arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
                 
                 setArrayOfRallies({
@@ -938,6 +942,7 @@ export default function Layout() {
 
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
             }
+
             // Otherwise check in which half last Point was recorded
             else if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length > 0) {
                 let currPointLocY = checkHalfVertical(currentY)
@@ -1018,6 +1023,21 @@ export default function Layout() {
      */
 
     const constructFootwork = () => {
+
+        // Check if Any footworks are present or not
+        // If not, then just create one
+        if (arrayOfFootwork.numFootworks === 0) {
+
+            // Setting State Variables differently
+            arrayOfFootwork.numFootworks = arrayOfRallies.numFootworks + 1
+            arrayOfFootwork.currentActiveIndex = 0
+
+            setArrayOfRallies({
+                numFootworks: arrayOfFootwork.numFootworks,
+                currentActiveIndex: arrayOfFootwork.currentActiveIndex
+            })
+            console.log(arrayOfFootwork)
+        }
         clearMouseListeners()
         setMode('Footwork')
         canvas.on('mouse:down', (event) => {
@@ -1025,13 +1045,23 @@ export default function Layout() {
             let currentY = canvas.getPointer(event.e).y
 
             // If array is empty, then do not check where Point has been placed
-            if (footworkArray.length === 0) {
+            console.log(arrayOfFootwork.currentActiveIndex)
+            if (arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length === 0) {
 
-                footworkArray.push({
+                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.push({
                     x: currentX,
                     y: currentY
                 })
-                setFootworkArray([...footworkArray])
+
+                // Set lastY value
+                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY = checkHalfVertical(currentY)
+                
+                setArrayOfFootwork({
+                    footworks: {
+                        lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY ,
+                        movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+                    }
+                })
 
                 let square = new fabric.Rect({
                     left: currentX - 3,
@@ -1044,7 +1074,7 @@ export default function Layout() {
                     strokeWidth: 1
                 })
 
-                let text = new fabric.IText(footworkArray.length + '', {
+                let text = new fabric.IText(arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length + '', {
                     fontFamily: 'arial black',
                     left: currentX + 12,
                     top: currentY,
@@ -1056,24 +1086,27 @@ export default function Layout() {
 
                 canvas.add(text)
                 canvas.add(square)
-
-                // Set rallyLastY value
-                footworkLastY = checkHalfVertical(currentY)
-                setRallyLastY(footworkLastY)
-                console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
             }
-            // Otherwise check in which half last Point was recorded
-            else if (footworkArray.length > 0) {
-                let currPointLocY = checkHalfVertical(currentY)
-                console.log("current ", currPointLocY)
-                console.log("Compare ", currPointLocY, footworkLastY)
 
-                if ((currPointLocY === footworkLastY)) {
-                    footworkArray.push({
+            // Otherwise check in which half last Point was recorded
+            else if (arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length > 0) {
+                
+                let currPointLocY = checkHalfVertical(currentY)
+                // console.log("current ", currPointLocY)
+                // console.log("Compare ", currPointLocY, footworkLastY)
+
+                if ((currPointLocY === arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY)) {
+                    
+                    arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.push({
                         x: currentX,
                         y: currentY
                     })
-                    setFootworkArray([...footworkArray])
+
+                    setArrayOfFootwork({
+                        footworks: {
+                            movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+                        }
+                    })
 
                     let square = new fabric.Rect({
                         left: currentX - 3,
@@ -1086,7 +1119,7 @@ export default function Layout() {
                         strokeWidth: 1
                     })
 
-                    let text = new fabric.IText(footworkArray.length + '', {
+                    let text = new fabric.IText(arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length + '', {
                         fontFamily: 'arial black',
                         left: currentX + 12,
                         top: currentY,
@@ -1096,8 +1129,17 @@ export default function Layout() {
                         selectable: false
                     })
 
-                    let line = new fabric.Line([footworkArray[footworkArray.length - 1].x, footworkArray[footworkArray.length - 1].y,
-                    footworkArray[footworkArray.length - 2].x, footworkArray[footworkArray.length - 2].y], {
+                    let line = new fabric.Line(
+                        [
+                            arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
+                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 1].x   ,
+                            arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
+                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 1].y,
+                            arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
+                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 2].x,
+                            arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
+                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 2].y,
+                        ], {
                         stroke: 'purple',
                         strokeWidth: 2,
                         selectable: false,
@@ -1155,11 +1197,11 @@ export default function Layout() {
                         </Text>
                     </Center>
                     <Box display={['none', 'flex']}>
-                        <SimpleGrid w={'8vw'} columns={2}>
+                        <SimpleGrid w={'8vw'} columns={2} h={'40vh'} overflowY='scroll'>
                                 {
                                     controlsmenu.map((item) => {
                                         return (
-                                            <Flex>
+                                            <Flex scroll>
                                                 <Tooltip key={item.name} label={item.name}>
                                                     <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
                                                         bg={mode === item.name ? 'blue.400' : 'white'}>
