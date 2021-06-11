@@ -12,7 +12,7 @@ import {
     Stack,
     Tooltip,
     Text,
-    VStack,
+    Flex,
     Center,
     SimpleGrid,
 } from '@chakra-ui/react'
@@ -35,7 +35,8 @@ import {
     GiShuttlecock,
     GrClear,
     IoEllipseOutline,
-    RiSubtractLine
+    RiSubtractLine,
+    RiFootprintFill
 } from 'react-icons/all'
 
 // Layout Function has Layout of Court as well as controls
@@ -80,10 +81,17 @@ export default function Layout() {
         numColumns: 0,
     })
 
+    // Store Gridline references
     const [gridLineRefs, setGridLineRefs] = useState([])
 
-    // Variable to tell in which half was last point placed
-    var [lastY, setLastY] = useState(0)
+    // Array to store Footwork patterns
+    const [footworkArray, setFootworkArray] = useState([])
+
+    // Variable to tell rally in which half was last point placed
+    var [rallyLastY, setRallyLastY] = useState(0)
+
+    // Variable to tell footwork in which half action is happening
+    var [footworkLastY] = useState(0)
 
     /**
      * Common State Variables
@@ -154,7 +162,7 @@ export default function Layout() {
      */
 
     const clearMouseListeners = () => {
-        canvas.off('mouse:down')
+        canvas.off('mouse:down') // Event Name
         canvas.off('mouse:move')
         canvas.off('mouse:up')
     }
@@ -299,7 +307,7 @@ export default function Layout() {
      * @returns none
      * @updates {canvas, mode}
      */
-    
+
 
     const addEllipse = () => {
         clearMouseListeners()
@@ -541,7 +549,6 @@ export default function Layout() {
                 left: startX,
                 top: startY,
                 fontSize: 30,
-
             })
 
             canvas.add(text)
@@ -703,19 +710,19 @@ export default function Layout() {
 
     const findMidOfCanvas = () => {
         setShowRefLines(!showRefLines)
-        console.log(showRefLines)
+        // console.log(showRefLines)
         let midX = parseInt(dims.boxW / 2)
         let midY = parseInt(dims.boxH / 2)
-        console.log(dims, midX, midY)
+        // console.log(dims, midX, midY)
 
         // Create 2 lines that give estimate of reference points of court
-        var horizontalLine = new fabric.Line([0, midY, dims.boxW, midY], {
+        var verticalLine = new fabric.Line([0, midY, dims.boxW, midY], {
             selectable: false,
             fill: 'transparent',
             stroke: 'red',
             strokeWidth: 5,
         })
-        var verticalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
+        var horizontalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
             selectable: false,
             fill: 'transparent',
             stroke: 'red',
@@ -736,141 +743,6 @@ export default function Layout() {
     }
 
     /**
-     * Checks Value given and returns in which half
-     * the value resides vertically
-     * @param {number} YValue <Height of Canvas> 
-     * @returns {2} if YValue is in lower half
-     * @returns {1} if YValue is in upper half
-     * @updates none
-     */
-
-    const checkHalfVertical = (YValue) => {
-        if (YValue > (dims.boxH / 2)) {
-            return 2
-        } else {
-            return 1
-        }
-    }
-
-    /**
-     * Creates Rally where user can select any point on court
-     * after which he has to select a point on Vertically opposite side 
-     * of current point if Canvas was divided into 2 vertical zones
-     * @updates {shotArray, lastY}
-     * @returns none
-     * 
-     * Problem : (Resolved) => Solution was to change how values were pushed in State Variable
-     * Rally Construction works fine when we constantly keep on updating and moving the rally
-     * Problem arises when any other component is used with this component, ie. adding some Normal
-     * Components like Circle, Square, Triangle, etc.
-     * 
-     * When those components are used and again this method is called, only the length of the object 
-     * is recovered from previous state, this means that even if a new rally is created, only the new points are
-     * recorded in the rally. It prevents user from having full data. It does not work with State Variable, nor a 
-     * simple array, this needs to be resolved with high priority
-     */
-
-    const constructRally = () => {
-        clearMouseListeners()
-        setMode('Rally')
-        canvas.on('mouse:down', (event) => {
-            let currentX = canvas.getPointer(event.e).x
-            let currentY = canvas.getPointer(event.e).y
-
-            // If array is empty, then do not check where Point has been placed
-            if (shotArray.length === 0) {
-                
-                shotArray.push({
-                    x: currentX,
-                    y: currentY
-                })
-                setShotArray([...shotArray])
-
-                let circle = new fabric.Circle({
-                    radius: 6,
-                    left: currentX - 3,
-                    top: currentY - 3,
-                    fill: 'black',
-                    selectable: false,
-                    stroke: 'black',
-                    strokeWidth: 1
-                })
-                
-                let text = new fabric.IText(shotArray.length + '', {
-                    fontFamily: 'arial black',
-                    left: currentX + 12,
-                    top: currentY,
-                    fontSize: 20,
-                    editable: false,
-                    selectable: false
-                })
-
-                canvas.add(text)
-                canvas.add(circle)
-
-                // Set lastY value
-                lastY = checkHalfVertical(currentY)
-                setLastY(lastY)
-                console.log("Last", lastY, " Last Func : ", checkHalfVertical(currentY))
-            }
-            // Otherwise check in which half last Point was recorded
-            else if (shotArray.length > 0) {
-                let currPointLocY = checkHalfVertical(currentY)
-                console.log("current ", currPointLocY)
-                console.log("Compare ", currPointLocY, lastY)
-
-                if ((currPointLocY === lastY)) {
-                    // Do nothing, as selected point
-                    // is not on opposite vertical half
-                    // Invalid Point Selected
-                } else {
-
-                    shotArray.push({
-                        x: currentX,
-                        y: currentY
-                    })
-                    setShotArray([...shotArray])
-                    
-                    let circle = new fabric.Circle({
-                        radius: 6,
-                        left: currentX - 3,
-                        top: currentY - 3,
-                        fill: 'black',
-                        selectable: false,
-                        stroke: 'black',
-                        strokeWidth: 1
-                    })
-
-                    let text = new fabric.IText(shotArray.length + '', {
-                        fontFamily: 'arial black',
-                        left: currentX + 12,
-                        top: currentY,
-                        fontSize: 20,
-                        editable: false,
-                        selectable: false
-                    })
-
-                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y,
-                    shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y], {
-                        stroke: 'red',
-                        strokeWidth: 2,
-                        selectable: false,
-                    })
-
-                    canvas.add(text)
-                    canvas.add(line)
-                    canvas.add(circle)
-
-                    // Set lastY value
-                    lastY = checkHalfVertical(currentY)
-                    setLastY(lastY)
-                }
-            }
-        })
-
-    }
-
-    /**
      * 
      * @param {number} numRows <Number of Rows to Divided into>
      * @param {number} numColumns <Number of Columns to Divided into>
@@ -881,8 +753,8 @@ export default function Layout() {
 
     const initGridLines = (numRows, numColumns) => {
         setGridlines({
-            numColumns: numColumns,
-            numRows: numRows,
+            numColumns: numColumns, // 4
+            numRows: numRows,       // 4
         })
 
         let incrementValueX = (dims.boxW - 6) / numRows
@@ -953,6 +825,251 @@ export default function Layout() {
     }
 
     /**
+     * Checks Value given and returns in which half
+     * the value resides vertically
+     * @param {number} YValue <Height of Canvas> 
+     * @returns {2} if YValue is in lower half
+     * @returns {1} if YValue is in upper half
+     * @updates none
+     */
+
+    const checkHalfVertical = (YValue) => {
+        if (YValue > (dims.boxH / 2)) {
+            return 2
+        } else {
+            return 1
+        }
+    }
+
+    /**
+     * Creates Rally where user can select any point on court
+     * after which he has to select a point on Vertically opposite side 
+     * of current point if Canvas was divided into 2 vertical zones
+     * @updates {shotArray, rallyLastY}
+     * @returns none
+     * @todo Add support for multiple rallies to be used
+     *       which will have different colors for lines
+     *       An array of distinct colors should be used to give different colors for each new rally
+     *       There will be no limit to create a new rally, but there will be a limit on no. of colors
+     *       we are using for the rally, we will use 5 colors, so they can make 5 different rallies   
+     * 
+     * Problem : (Resolved) => Solution was to change how values were pushed in State Variable
+     * Rally Construction works fine when we constantly keep on updating and moving the rally
+     * Problem arises when any other component is used with this component, ie. adding some Normal
+     * Components like Circle, Square, Triangle, etc.
+     * 
+     * When those components are used and again this method is called, only the length of the object 
+     * is recovered from previous state, this means that even if a new rally is created, only the new points are
+     * recorded in the rally. It prevents user from having full data. It does not work with State Variable, nor a 
+     * simple array, this needs to be resolved with high priority
+     */
+
+    const constructRally = () => {
+        clearMouseListeners()
+        setMode('Rally')
+        canvas.on('mouse:down', (event) => {
+            let currentX = canvas.getPointer(event.e).x
+            let currentY = canvas.getPointer(event.e).y
+
+            // If array is empty, then do not check where Point has been placed
+            if (shotArray.length === 0) {
+
+                shotArray.push({
+                    x: currentX,
+                    y: currentY
+                })
+                setShotArray([...shotArray])
+
+                let circle = new fabric.Circle({
+                    radius: 6,
+                    left: currentX - 3,
+                    top: currentY - 3,
+                    fill: 'black',
+                    selectable: false,
+                    stroke: 'black',
+                    strokeWidth: 1
+                })
+
+                let text = new fabric.IText(shotArray.length + '', {
+                    fontFamily: 'arial black',
+                    left: currentX + 12,
+                    top: currentY,
+                    fontSize: 20,
+                    editable: false,
+                    selectable: false
+                })
+
+                canvas.add(text)
+                canvas.add(circle)
+
+                // Set rallyLastY value
+                rallyLastY = checkHalfVertical(currentY)
+                setRallyLastY(rallyLastY)
+                // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
+            }
+            // Otherwise check in which half last Point was recorded
+            else if (shotArray.length > 0) {
+                let currPointLocY = checkHalfVertical(currentY)
+                // console.log("current ", currPointLocY)
+                // console.log("Compare ", currPointLocY, rallyLastY)
+
+                if ((currPointLocY === rallyLastY)) {
+                    // Do nothing, as selected point
+                    // is not on opposite vertical half
+                    // Invalid Point Selected
+                } else {
+                    shotArray.push({
+                        x: currentX,
+                        y: currentY
+                    })
+                    setShotArray([...shotArray])
+
+                    let circle = new fabric.Circle({
+                        radius: 6,
+                        left: currentX - 3,
+                        top: currentY - 3,
+                        fill: 'black',
+                        selectable: false,
+                        stroke: 'black',
+                        strokeWidth: 1
+                    })
+
+                    let text = new fabric.IText(shotArray.length + '', {
+                        fontFamily: 'arial black',
+                        left: currentX + 12,
+                        top: currentY,
+                        fontSize: 20,
+                        editable: false,
+                        selectable: false
+                    })
+
+                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y,
+                    shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y], {
+                        stroke: 'red',
+                        strokeWidth: 2,
+                        selectable: false,
+                    })
+
+                    canvas.add(text)
+                    canvas.add(line)
+                    canvas.add(circle)
+
+                    // Set rallyLastY value
+                    rallyLastY = checkHalfVertical(currentY)
+                    setRallyLastY(rallyLastY)
+                }
+            }
+        })
+
+    }
+
+    /**
+     * Creates Footwork Movements, like a Rally
+     * This is available only on 1 side of court, wherever the point is first activated
+     * @param 
+     * @returns none
+     * @updates {mode}
+     */
+
+    const constructFootwork = () => {
+        clearMouseListeners()
+        setMode('Footwork')
+        canvas.on('mouse:down', (event) => {
+            let currentX = canvas.getPointer(event.e).x
+            let currentY = canvas.getPointer(event.e).y
+
+            // If array is empty, then do not check where Point has been placed
+            if (footworkArray.length === 0) {
+
+                footworkArray.push({
+                    x: currentX,
+                    y: currentY
+                })
+                setFootworkArray([...footworkArray])
+
+                let square = new fabric.Rect({
+                    left: currentX - 3,
+                    top: currentY - 3,
+                    height: 12,
+                    width: 12,
+                    fill: '#32a7e6',
+                    selectable: false,
+                    stroke: '#32a7e6',
+                    strokeWidth: 1
+                })
+
+                let text = new fabric.IText(footworkArray.length + '', {
+                    fontFamily: 'arial black',
+                    left: currentX + 12,
+                    top: currentY,
+                    stroke: 'black',
+                    fontSize: 20,
+                    editable: false,
+                    selectable: false
+                })
+
+                canvas.add(text)
+                canvas.add(square)
+
+                // Set rallyLastY value
+                footworkLastY = checkHalfVertical(currentY)
+                setRallyLastY(footworkLastY)
+                console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
+            }
+            // Otherwise check in which half last Point was recorded
+            else if (footworkArray.length > 0) {
+                let currPointLocY = checkHalfVertical(currentY)
+                console.log("current ", currPointLocY)
+                console.log("Compare ", currPointLocY, footworkLastY)
+
+                if ((currPointLocY === footworkLastY)) {
+                    footworkArray.push({
+                        x: currentX,
+                        y: currentY
+                    })
+                    setFootworkArray([...footworkArray])
+
+                    let square = new fabric.Rect({
+                        left: currentX - 3,
+                        top: currentY - 3,
+                        height: 12,
+                        width: 12,
+                        fill: '#32a7e6',
+                        selectable: false,
+                        stroke: '#32a7e6',
+                        strokeWidth: 1
+                    })
+
+                    let text = new fabric.IText(footworkArray.length + '', {
+                        fontFamily: 'arial black',
+                        left: currentX + 12,
+                        top: currentY,
+                        stroke: 'black',
+                        fontSize: 20,
+                        editable: false,
+                        selectable: false
+                    })
+
+                    let line = new fabric.Line([footworkArray[footworkArray.length - 1].x, footworkArray[footworkArray.length - 1].y,
+                    footworkArray[footworkArray.length - 2].x, footworkArray[footworkArray.length - 2].y], {
+                        stroke: 'purple',
+                        strokeWidth: 2,
+                        selectable: false,
+                    })
+
+                    canvas.add(text)
+                    canvas.add(line)
+                    canvas.add(square)
+                } else {
+                    // Do nothing, as selected point
+                    // is in opposite vertical half 
+                    // Invalid Point Selected
+                }
+            }
+        })
+    }
+
+    /**
      * Simulation Menu consists of Controls for 
      * Simulation of rallies
      */
@@ -972,6 +1089,10 @@ export default function Layout() {
             name: 'Rally',
             icon: <GiShuttlecock />,
             func: constructRally,
+        }, {
+            name: 'Footwork',
+            icon: <RiFootprintFill />,
+            func: constructFootwork,
         }
     ]
 
@@ -981,66 +1102,58 @@ export default function Layout() {
                 <Box display={['none', 'flex']} w={'19vw'} ml={'2vw'}>
                     Some Stuff here
                 </Box>
-                <Box display={['none', 'flex']} w={'8vw'}>
-                    <VStack w={'8vw'}>
-                        <Box >
-                            <Center w='100%' >
-                                <Text fontSize={'2xl'} mb={'2vh'}>
-                                    Controls
-                                </Text>
-                            </Center>
-                            <Stack direction={["row", "column"]}>
+                <Box w={'8vw'}>
+                    <Center w='100%' >
+                        <Text fontSize={'2xl'} mb={'2vh'}>
+                            Controls
+                        </Text>
+                    </Center>
+                    <Box display={['none', 'flex']}>
+                        <SimpleGrid w={'8vw'} columns={2}>
                                 {
                                     controlsmenu.map((item) => {
                                         return (
-                                            <Tooltip key={item.name} label={item.name}>
-                                                <Button px={'1vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
-                                                    <SimpleGrid columns={1}>
-                                                        <Box>
-                                                            {item.icon}
-                                                        </Box>
-                                                    </SimpleGrid>
-                                                </Button>
-                                            </Tooltip>
+                                            <Flex>
+                                                <Tooltip key={item.name} label={item.name}>
+                                                    <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                        bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                                {item.icon}
+                                                    </Button>
+                                                </Tooltip>
+                                            </Flex>
                                         )
                                     })
                                 }
-                            </Stack>
-                        </Box>
-                    </VStack>
+                        </SimpleGrid>
+                    </Box>
                 </Box>
                 <Box w={["100vw", "40vw", "40vw"]} minW={'35vw'} h={'95vh'} ref={boxDiv}>
                     <canvas id='canvas'></canvas>
                 </Box>
-                <Box display={['none', 'flex']} w={'8vw'}>
-                    <VStack w={'8vw'}>
-                        <Box >
-                            <Center w='100%' >
-                                <Text fontSize={'2xl'} mb={'2vh'}>
-                                    Simulation
-                                </Text>
-                            </Center>
-                            <Stack direction={["row", "column"]}>
+                <Box w={'8vw'}>
+                    <Center w='100%' >
+                        <Text fontSize={'2xl'} mb={'2vh'}>
+                            Simulation
+                        </Text>
+                    </Center>
+                    <Box display={['none', 'flex']}>
+                        <SimpleGrid w={'8vw'} columns={2}>
                                 {
                                     simulationMenu.map((item) => {
                                         return (
-                                            <Tooltip key={item.name} label={item.name}>
-                                                <Button px={'1vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
-                                                    <SimpleGrid columns={1}>
-                                                        <Box>
-                                                            {item.icon}
-                                                        </Box>
-                                                    </SimpleGrid>
-                                                </Button>
-                                            </Tooltip>
+                                            <Flex>
+                                                <Tooltip key={item.name} label={item.name}>
+                                                    <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                        bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                                {item.icon}
+                                                    </Button>
+                                                </Tooltip>
+                                            </Flex>
                                         )
                                     })
                                 }
-                            </Stack>
-                        </Box>
-                    </VStack>
+                        </SimpleGrid>
+                    </Box>
                 </Box>
                 <Box display={['none', 'flex']} w={'19vw'} mr={'2vw'}>
                     Some Stuff here
