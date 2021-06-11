@@ -72,7 +72,14 @@ export default function Layout() {
     const [refLineY, setRefLineY] = useState(null)
 
     // Array to store all shots played
-    const [shotArray, setShotArray] = useState([])
+    var [arrayOfRallies, setArrayOfRallies] = useState({
+        numRallies: 0,
+        currentActiveIndex: -1,
+        rallies: [{
+            lastY: 0,
+            shots: []
+        }]
+    })
 
     // Store Gridlines and their values
     const [gridLines, setGridlines] = useState({
@@ -845,7 +852,7 @@ export default function Layout() {
      * Creates Rally where user can select any point on court
      * after which he has to select a point on Vertically opposite side 
      * of current point if Canvas was divided into 2 vertical zones
-     * @updates {shotArray, rallyLastY}
+     * @updates {arrayOfRallies, rallyLastY}
      * @returns none
      * @todo Add support for multiple rallies to be used
      *       which will have different colors for lines
@@ -865,20 +872,44 @@ export default function Layout() {
      */
 
     const constructRally = () => {
+
+        // Check if Any rallies are present or not
+        // If not, then just create one
+        if (arrayOfRallies.numRallies === 0) {
+            console.log("INITIALING NUMRALLIES")
+            arrayOfRallies.numRallies = arrayOfRallies.numRallies + 1
+            arrayOfRallies.currentActiveIndex = 0
+            setArrayOfRallies({
+                numRallies: arrayOfRallies.numRallies,
+                currentActiveIndex: arrayOfRallies.currentActiveIndex
+            })
+            console.log(arrayOfRallies.numRallies, arrayOfRallies.currentActiveIndex)
+        }
+
         clearMouseListeners()
         setMode('Rally')
         canvas.on('mouse:down', (event) => {
             let currentX = canvas.getPointer(event.e).x
             let currentY = canvas.getPointer(event.e).y
 
+            console.log(arrayOfRallies.currentActiveIndex)
             // If array is empty, then do not check where Point has been placed
-            if (shotArray.length === 0) {
+            if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length === 0) {
 
-                shotArray.push({
+                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
                     x: currentX,
                     y: currentY
                 })
-                setShotArray([...shotArray])
+
+                // Set rallyLastY value
+                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
+                
+                setArrayOfRallies({
+                    rallies: {
+                        lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY ,
+                        shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+                    }
+                })
 
                 let circle = new fabric.Circle({
                     radius: 6,
@@ -890,7 +921,7 @@ export default function Layout() {
                     strokeWidth: 1
                 })
 
-                let text = new fabric.IText(shotArray.length + '', {
+                let text = new fabric.IText(arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length + '', {
                     fontFamily: 'arial black',
                     left: currentX + 12,
                     top: currentY,
@@ -902,27 +933,34 @@ export default function Layout() {
                 canvas.add(text)
                 canvas.add(circle)
 
-                // Set rallyLastY value
-                rallyLastY = checkHalfVertical(currentY)
-                setRallyLastY(rallyLastY)
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
             }
             // Otherwise check in which half last Point was recorded
-            else if (shotArray.length > 0) {
+            else if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length > 0) {
                 let currPointLocY = checkHalfVertical(currentY)
                 // console.log("current ", currPointLocY)
-                // console.log("Compare ", currPointLocY, rallyLastY)
+                // console.log("Compare ", curshotArray.lengthrPointLocY, rallyLastY)
 
-                if ((currPointLocY === rallyLastY)) {
+                if ((currPointLocY === arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY)) {
                     // Do nothing, as selected point
                     // is not on opposite vertical half
                     // Invalid Point Selected
                 } else {
-                    shotArray.push({
+                    
+                    arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
                         x: currentX,
                         y: currentY
                     })
-                    setShotArray([...shotArray])
+    
+                    // Set rallyLastY value
+                    arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
+                    
+                    setArrayOfRallies({
+                        rallies: {
+                            lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY ,
+                            shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+                        }
+                    })
 
                     let circle = new fabric.Circle({
                         radius: 6,
@@ -934,7 +972,7 @@ export default function Layout() {
                         strokeWidth: 1
                     })
 
-                    let text = new fabric.IText(shotArray.length + '', {
+                    let text = new fabric.IText(arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length + '', {
                         fontFamily: 'arial black',
                         left: currentX + 12,
                         top: currentY,
@@ -943,8 +981,17 @@ export default function Layout() {
                         selectable: false
                     })
 
-                    let line = new fabric.Line([shotArray[shotArray.length - 1].x, shotArray[shotArray.length - 1].y,
-                    shotArray[shotArray.length - 2].x, shotArray[shotArray.length - 2].y], {
+                    let line = new fabric.Line(
+                        [
+                            arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1].x   ,
+                            arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1].y,
+                            arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 2].x,
+                            arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 2].y,
+                        ], {
                         stroke: 'red',
                         strokeWidth: 2,
                         selectable: false,
@@ -953,10 +1000,6 @@ export default function Layout() {
                     canvas.add(text)
                     canvas.add(line)
                     canvas.add(circle)
-
-                    // Set rallyLastY value
-                    rallyLastY = checkHalfVertical(currentY)
-                    setRallyLastY(rallyLastY)
                 }
             }
         })
