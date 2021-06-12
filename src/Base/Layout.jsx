@@ -60,6 +60,9 @@ export default function Layout() {
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null)
 
+    // Variable to store current selected object
+    const [currentObject, setCurrentObject] = useState(null)
+
     /**  
      * Simulation Related State Variables
     */
@@ -72,7 +75,7 @@ export default function Layout() {
     const [refLineY, setRefLineY] = useState(null)
 
     // Array to store all shots played
-    var [arrayOfRallies, setArrayOfRallies] = useState({
+    const [arrayOfRallies, setArrayOfRallies] = useState({
         numRallies: 0,
         currentActiveIndex: -1,
         rallies: [{
@@ -93,7 +96,7 @@ export default function Layout() {
     const [gridLineRefs, setGridLineRefs] = useState([])
 
     // Array to store all footwork patterns
-    var [arrayOfFootwork, setArrayOfFootwork] = useState({
+    const [arrayOfFootwork, setArrayOfFootwork] = useState({
         numFootworks: 0,
         currentActiveIndex: -1,
         footworks: [{
@@ -167,6 +170,36 @@ export default function Layout() {
         loadCanvas()
         // eslint-disable-next-line
     }, [boxDiv.current])
+
+
+    /**
+     * Add Object Select Listener
+     * Add Object De-select Listener
+     * Following 2 functions do the above task
+     * First function is responsible for setting and unsetting of object variable
+     * Second function is required to check initialization of Canvas (exception handling)
+     * and setting listerners accordingly
+     * @updates {canvas}
+     * @returns none
+     */ 
+
+    const updateSelectedObject = () => {
+        setCurrentObject(canvas.getActiveObject())
+    }
+    
+    // Check if Canvas is Initialized, if yes, add Object Listeners to it
+    (() => {
+        if (canvas === null) {
+            setTimeout(1000, this)
+        } else {
+            canvas.on('selection:created', updateSelectedObject)
+            canvas.on('selection:updated', updateSelectedObject)
+            canvas.on('selection:cleared', updateSelectedObject)
+            canvas.on('object:modified', updateSelectedObject)
+            return
+        }
+    })()
+
 
     /**
      * Clears all Mouse Events for canvas
@@ -642,7 +675,7 @@ export default function Layout() {
      * Calls all above functions as per options
      */
 
-    const controlsmenu = [
+    const objectsMenu = [
         {
             name: 'Draw',
             icon: <BiEdit />,
@@ -683,6 +716,13 @@ export default function Layout() {
             icon: <BiText />,
             func: addText,
         },
+    ]
+
+    /**
+     * Control Objects using a simple set of Controls
+     */
+
+    const canvasControlMenu = [
         {
             name: 'Undo',
             icon: <BiUndo />,
@@ -910,10 +950,10 @@ export default function Layout() {
 
                 // Set lastY value
                 arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
-                
+
                 setArrayOfRallies({
                     rallies: {
-                        lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY ,
+                        lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
                         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
                     }
                 })
@@ -954,18 +994,18 @@ export default function Layout() {
                     // is not on opposite vertical half
                     // Invalid Point Selected
                 } else {
-                    
+
                     arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
                         x: currentX,
                         y: currentY
                     })
-    
+
                     // Set rallyLastY value
                     arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
-                    
+
                     setArrayOfRallies({
                         rallies: {
-                            lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY ,
+                            lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
                             shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
                         }
                     })
@@ -992,7 +1032,7 @@ export default function Layout() {
                     let line = new fabric.Line(
                         [
                             arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
-                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1].x   ,
+                                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1].x,
                             arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
                                 arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1].y,
                             arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
@@ -1027,15 +1067,18 @@ export default function Layout() {
         // Check if Any footworks are present or not
         // If not, then just create one
         if (arrayOfFootwork.numFootworks === 0) {
+            console.log(arrayOfFootwork.numFootworks)
+
 
             // Setting State Variables differently
-            arrayOfFootwork.numFootworks = arrayOfRallies.numFootworks + 1
+            arrayOfFootwork.numFootworks = 1
             arrayOfFootwork.currentActiveIndex = 0
 
             setArrayOfRallies({
                 numFootworks: arrayOfFootwork.numFootworks,
                 currentActiveIndex: arrayOfFootwork.currentActiveIndex
             })
+            console.log(arrayOfFootwork.numFootworks)
             console.log(arrayOfFootwork)
         }
         clearMouseListeners()
@@ -1055,10 +1098,10 @@ export default function Layout() {
 
                 // Set lastY value
                 arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY = checkHalfVertical(currentY)
-                
+
                 setArrayOfFootwork({
                     footworks: {
-                        lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY ,
+                        lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY,
                         movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
                     }
                 })
@@ -1090,13 +1133,13 @@ export default function Layout() {
 
             // Otherwise check in which half last Point was recorded
             else if (arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length > 0) {
-                
+
                 let currPointLocY = checkHalfVertical(currentY)
                 // console.log("current ", currPointLocY)
                 // console.log("Compare ", currPointLocY, footworkLastY)
 
                 if ((currPointLocY === arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY)) {
-                    
+
                     arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.push({
                         x: currentX,
                         y: currentY
@@ -1132,7 +1175,7 @@ export default function Layout() {
                     let line = new fabric.Line(
                         [
                             arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
-                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 1].x   ,
+                                arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 1].x,
                             arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
                                 arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements.length - 1].y,
                             arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements[
@@ -1162,7 +1205,7 @@ export default function Layout() {
      * Simulation of rallies
      */
 
-    const simulationMenu = [
+    const simulationRefs = [
         {
             name: 'Check',
             icon: <GiMagnifyingGlass />,
@@ -1173,11 +1216,26 @@ export default function Layout() {
             icon: <BiGridSmall />,
             func: showGrids,
         },
+    ]
+
+    /**
+     * Menu for Controlling Rally
+     */
+
+    const rallyMenu = [
         {
             name: 'Rally',
             icon: <GiShuttlecock />,
             func: constructRally,
-        }, {
+        },
+    ]
+
+    /**
+     * Menu for Controlling Footwork
+     */
+
+    const footworkMenu = [
+        {
             name: 'Footwork',
             icon: <RiFootprintFill />,
             func: constructFootwork,
@@ -1188,63 +1246,134 @@ export default function Layout() {
         <chakra.div my={5}>
             <Stack direction={["column", "row"]}>
                 <Box display={['none', 'flex']} w={'19vw'} ml={'2vw'}>
-                    Some Stuff here
+                    {/* Some Stuff here */}
+                    {"TOP : " + (currentObject === null ? "NULL" : currentObject.top)}
                 </Box>
-                <Box w={'8vw'}>
-                    <Center w='100%' >
-                        <Text fontSize={'2xl'} mb={'2vh'}>
-                            Controls
+                <Box w={'10vw'} h={dims.boxH}>
+                    <Center w='100%'>
+                        <Text fontSize={'2xl'} >
+                            Objects
                         </Text>
                     </Center>
                     <Box display={['none', 'flex']}>
-                        <SimpleGrid w={'8vw'} columns={2} h={'40vh'} overflowY='scroll'>
-                                {
-                                    controlsmenu.map((item) => {
-                                        return (
-                                            <Flex scroll>
-                                                <Tooltip key={item.name} label={item.name}>
-                                                    <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                        bg={mode === item.name ? 'blue.400' : 'white'}>
-                                                                {item.icon}
-                                                    </Button>
-                                                </Tooltip>
-                                            </Flex>
-                                        )
-                                    })
-                                }
+                        <SimpleGrid w={'8vw'} columns={2} maxH={'40vh'} overflowY='auto'>
+                            {
+                                objectsMenu.map((item) => {
+                                    return (
+                                        <Flex scroll={'true'} key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    )
+                                })
+                            }
                         </SimpleGrid>
                     </Box>
-                </Box>
-                <Box w={["100vw", "40vw", "40vw"]} minW={'35vw'} h={'95vh'} ref={boxDiv}>
-                    <canvas id='canvas'></canvas>
-                </Box>
-                <Box w={'8vw'}>
                     <Center w='100%' >
-                        <Text fontSize={'2xl'} mb={'2vh'}>
-                            Simulation
+                        <Text fontSize={'2xl'}  >
+                            Object Controls
                         </Text>
                     </Center>
+                    <Box display={['none', 'flex']} >
+                        <SimpleGrid w={'8vw'} columns={2} maxH={'20vh'} overflowY='auto'>
+                            {
+                                canvasControlMenu.map((item) => {
+                                    return (
+                                        <Flex scroll='true' key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    )
+                                })
+                            }
+                        </SimpleGrid>
+
+                    </Box>
+                </Box>
+                <Box w={["100vw", "36vw", "40vw"]} minW={'35vw'} h={'95vh'} ref={boxDiv}>
+                    <canvas id='canvas'></canvas>
+                </Box>
+                <Box w={'10vw'}>
+                    <Box w='100%'>
+                        <Text fontSize={'2xl'} >
+                            Reference Points
+                        </Text>
+                    </Box>
                     <Box display={['none', 'flex']}>
-                        <SimpleGrid w={'8vw'} columns={2}>
-                                {
-                                    simulationMenu.map((item) => {
-                                        return (
-                                            <Flex>
-                                                <Tooltip key={item.name} label={item.name}>
-                                                    <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                        bg={mode === item.name ? 'blue.400' : 'white'}>
-                                                                {item.icon}
-                                                    </Button>
-                                                </Tooltip>
-                                            </Flex>
-                                        )
-                                    })
-                                }
+                        <SimpleGrid w={'8vw'} columns={2} maxH={'15vh'} overflowY='auto'>
+                            {
+                                simulationRefs.map((item) => {
+                                    return (
+                                        <Flex scroll='true' key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    )
+                                })
+                            }
+                        </SimpleGrid>
+                    </Box>
+                    <Center w='100%' >
+                        <Text fontSize={'2xl'}  >
+                            Rally Control
+                        </Text>
+                    </Center>
+                    <Box display={['none', 'flex']} >
+                        <SimpleGrid w={'8vw'} columns={2} h={'15vh'} overflowY='auto'>
+                            {
+                                rallyMenu.map((item) => {
+                                    return (
+                                        <Flex scroll='true' key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    )
+                                })
+                            }
+                        </SimpleGrid>
+                    </Box>
+                    <Center w='100%' >
+                        <Text fontSize={'2xl'}  >
+                            Footwork Control
+                        </Text>
+                    </Center>
+                    <Box display={['none', 'flex']} >
+                        <SimpleGrid w={'8vw'} columns={2} h={'15vh'} overflowY='auto'>
+                            {
+                                footworkMenu.map((item) => {
+                                    return (
+                                        <Flex scroll='true' key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    )
+                                })
+                            }
                         </SimpleGrid>
                     </Box>
                 </Box>
                 <Box display={['none', 'flex']} w={'19vw'} mr={'2vw'}>
-                    Some Stuff here
+                    {/* Some Stuff here */}
                 </Box>
             </Stack>
         </chakra.div>
