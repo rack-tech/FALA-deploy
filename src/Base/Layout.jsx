@@ -3,7 +3,7 @@ import Court from './baddy_crt.jpg'
 import {
     useEffect,
     useRef,
-    useState
+    useState,
 } from 'react'
 import {
     Box,
@@ -15,6 +15,8 @@ import {
     Flex,
     Center,
     SimpleGrid,
+    useColorMode,
+    useColorModeValue
 } from '@chakra-ui/react'
 import {
     fabric
@@ -36,17 +38,22 @@ import {
     GrClear,
     IoEllipseOutline,
     RiSubtractLine,
-    RiFootprintFill
+    RiFootprintFill,
+    BsPlay
 } from 'react-icons/all'
 
 // Layout Function has Layout of Court as well as controls
 
 export default function Layout() {
 
+    // Color Mode State Variable
+    const { colorMode, toggleColorMode } = useColorMode()
+
     /** 
      * Following State Variables are required to Draw Canvas,
      * its height, width, etc.
     */
+
 
     // Create Reference to parent Box
     const boxDiv = useRef(null)
@@ -77,7 +84,7 @@ export default function Layout() {
     // Array to store all shots played
     const [arrayOfRallies, setArrayOfRallies] = useState({
         numRallies: 0,
-        currentActiveIndex: -1,
+        currentActiveIndex: 0,
         rallies: [{
             name: '',
             lastY: 0,
@@ -105,6 +112,9 @@ export default function Layout() {
             movements: []
         }]
     })
+
+    // Variable to store animation object
+    const [animationObject, setAnimationObject] = useState(null)
 
 
     // Variable to tell footwork in which half action is happening
@@ -181,12 +191,12 @@ export default function Layout() {
      * and setting listerners accordingly
      * @updates {canvas}
      * @returns none
-     */ 
+     */
 
     const updateSelectedObject = () => {
         setCurrentObject(canvas.getActiveObject())
     }
-    
+
     // Check if Canvas is Initialized, if yes, add Object Listeners to it
     (() => {
         if (canvas === null) {
@@ -924,14 +934,18 @@ export default function Layout() {
         if (arrayOfRallies.numRallies === 0) {
 
             // Setting State Variables differently
-            arrayOfRallies.numRallies = arrayOfRallies.numRallies + 1
-            arrayOfRallies.currentActiveIndex = 0
 
-            setArrayOfRallies({
-                numRallies: arrayOfRallies.numRallies,
-                currentActiveIndex: arrayOfRallies.currentActiveIndex
-            })
+            // setArrayOfRallies({
+            //     numRallies: arrayOfRallies.numRallies,
+            //     currentActiveIndex: arrayOfRallies.currentActiveIndex
+            // })  
 
+            setArrayOfRallies(prevArrayOfRallies => ({
+                ...prevArrayOfRallies,
+                numRallies: arrayOfRallies.numRallies + 1,
+                currentActiveIndex: 0
+            }))
+            console.log(arrayOfRallies)
         }
 
         clearMouseListeners()
@@ -951,12 +965,17 @@ export default function Layout() {
                 // Set lastY value
                 arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
 
-                setArrayOfRallies({
-                    rallies: {
-                        lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
-                        shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
-                    }
-                })
+                // setArrayOfRallies({
+                //     rallies: {
+                //         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+                //         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+                //     }
+                // })
+
+                setArrayOfRallies(prevArrayOfRallies => ({
+                    ...prevArrayOfRallies,
+                    rallies: [...arrayOfRallies.rallies]
+                }))
 
                 let circle = new fabric.Circle({
                     radius: 6,
@@ -1003,12 +1022,17 @@ export default function Layout() {
                     // Set rallyLastY value
                     arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY = checkHalfVertical(currentY)
 
-                    setArrayOfRallies({
-                        rallies: {
-                            lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
-                            shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
-                        }
-                    })
+                    // setArrayOfRallies({
+                    //     rallies: {
+                    //         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+                    //         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+                    //     }
+                    // })
+
+                    setArrayOfRallies(prevArrayOfRallies => ({
+                        ...prevArrayOfRallies,
+                        rallies: [...arrayOfRallies.rallies]
+                    }))
 
                     let circle = new fabric.Circle({
                         radius: 6,
@@ -1067,20 +1091,14 @@ export default function Layout() {
         // Check if Any footworks are present or not
         // If not, then just create one
         if (arrayOfFootwork.numFootworks === 0) {
-            console.log(arrayOfFootwork.numFootworks)
 
-
-            // Setting State Variables differently
-            arrayOfFootwork.numFootworks = 1
-            arrayOfFootwork.currentActiveIndex = 0
-
-            setArrayOfRallies({
-                numFootworks: arrayOfFootwork.numFootworks,
-                currentActiveIndex: arrayOfFootwork.currentActiveIndex
-            })
-            console.log(arrayOfFootwork.numFootworks)
-            console.log(arrayOfFootwork)
+            setArrayOfFootwork(prevArrayOfFootwork => ({
+                ...prevArrayOfFootwork,
+                numFootworks: arrayOfFootwork.numFootworks + 1,
+                currentActiveIndex: 0
+            }))
         }
+
         clearMouseListeners()
         setMode('Footwork')
         canvas.on('mouse:down', (event) => {
@@ -1099,12 +1117,17 @@ export default function Layout() {
                 // Set lastY value
                 arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY = checkHalfVertical(currentY)
 
-                setArrayOfFootwork({
-                    footworks: {
-                        lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY,
-                        movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
-                    }
-                })
+                // setArrayOfFootwork({
+                //     footworks: {
+                //         lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY,
+                //         movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+                //     }
+                // })
+
+                setArrayOfFootwork(prevArrayOfFootwork => ({
+                    ...prevArrayOfFootwork,
+                    footworks: [...arrayOfFootwork.footworks]
+                }))
 
                 let square = new fabric.Rect({
                     left: currentX - 3,
@@ -1145,11 +1168,15 @@ export default function Layout() {
                         y: currentY
                     })
 
-                    setArrayOfFootwork({
-                        footworks: {
-                            movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
-                        }
-                    })
+                    // setArrayOfFootwork({
+                    //     footworks: {
+                    //         movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+                    //     }
+                    // })
+
+                    setArrayOfFootwork(prevArrayOfFootwork => ({
+                        footworks: [...arrayOfFootwork.footworks]
+                    }))
 
                     let square = new fabric.Rect({
                         left: currentX - 3,
@@ -1201,6 +1228,45 @@ export default function Layout() {
     }
 
     /**
+     * Create Animation for Footwork as well as Rally
+     * Animation can be paused using a button
+     * Animation can be stopped using another button
+     * @returns none
+     * @updates {animationObject}
+     */
+
+    const setAndPlayAnimationObject = () => {
+        // If mode = Rally, then get currentActiveIndex of Rally
+        // Else If mode = Footwork, then get currentActiveIndex of Footwork
+        // Then update path variable that will be used to animate
+        // Start Animation
+        if (mode === 'Rally') {
+            // Get currentActiveIndex's shots array
+            let pathShots = ""
+            let shots = arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots
+            console.log(shots)
+            if (shots.length > 0) {
+                pathShots += "M " + shots[0].x + " " + shots[0].y
+                for (var i = 1; i < shots.length; i++) {
+                    pathShots += " L " + shots[i].x + " " + shots[i].y
+                }
+            }
+
+            if (shots.length > 0) {
+                let path = new fabric.Path(pathShots, {
+                    stroke: "black",
+                    fill: "transparent",
+                    top: shots[0].y,
+                    left: shots[0].x
+                })
+                canvas.add(path)
+                setAnimationObject(path)
+                console.log(animationObject)
+            }
+        }
+    }
+
+    /**
      * Simulation Menu consists of Controls for 
      * Simulation of rallies
      */
@@ -1228,6 +1294,11 @@ export default function Layout() {
             icon: <GiShuttlecock />,
             func: constructRally,
         },
+        {
+            name: 'Set Rally',
+            icon: <BsPlay />,
+            func: setAndPlayAnimationObject
+        }
     ]
 
     /**
@@ -1242,12 +1313,21 @@ export default function Layout() {
         }
     ]
 
+    /**
+     * Mode of Color as per colorModeValue
+     */
+
+    let currentBackgroundColor = useColorModeValue('white', 'gray.800')
+    let currentLineColor = useColorModeValue('gray.800', 'white.200')
+
     return (
         <chakra.div my={5}>
             <Stack direction={["column", "row"]}>
                 <Box display={['none', 'flex']} w={'19vw'} ml={'2vw'}>
                     {/* Some Stuff here */}
-                    {"TOP : " + (currentObject === null ? "NULL" : currentObject.top)}
+                    <Text>
+                        {"TOP : " + (currentObject === null ? "NULL" : currentObject.top)}
+                    </Text>
                 </Box>
                 <Box w={'10vw'} h={dims.boxH}>
                     <Center w='100%'>
@@ -1262,8 +1342,9 @@ export default function Layout() {
                                     return (
                                         <Flex scroll={'true'} key={item.name}>
                                             <Tooltip label={item.name}>
-                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                <Button px={'0.2vw'} py={'3vh'} onClick={item.func} 
+                                                color={currentLineColor} fontSize={'xl'} w={'100%'}
+                                                    bg={mode === item.name ? 'blue.400' : currentBackgroundColor}>
                                                     {item.icon}
                                                 </Button>
                                             </Tooltip>
@@ -1286,7 +1367,8 @@ export default function Layout() {
                                         <Flex scroll='true' key={item.name}>
                                             <Tooltip label={item.name}>
                                                 <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    color={currentLineColor}
+                                                    bg={mode === item.name ? 'blue.400' : currentBackgroundColor}>
                                                     {item.icon}
                                                 </Button>
                                             </Tooltip>
@@ -1315,7 +1397,8 @@ export default function Layout() {
                                         <Flex scroll='true' key={item.name}>
                                             <Tooltip label={item.name}>
                                                 <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    color={currentLineColor}
+                                                    bg={mode === item.name ? 'blue.400' : currentBackgroundColor}>
                                                     {item.icon}
                                                 </Button>
                                             </Tooltip>
@@ -1338,7 +1421,8 @@ export default function Layout() {
                                         <Flex scroll='true' key={item.name}>
                                             <Tooltip label={item.name}>
                                                 <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    color={currentLineColor}
+                                                    bg={mode === item.name ? 'blue.400' : currentBackgroundColor}>
                                                     {item.icon}
                                                 </Button>
                                             </Tooltip>
@@ -1361,7 +1445,8 @@ export default function Layout() {
                                         <Flex scroll='true' key={item.name}>
                                             <Tooltip label={item.name}>
                                                 <Button px={'0.2vw'} py={'3vh'} onClick={item.func} fontSize={'xl'} w={'100%'}
-                                                    bg={mode === item.name ? 'blue.400' : 'white'}>
+                                                    color={currentLineColor}
+                                                    bg={mode === item.name ? 'blue.400' : currentBackgroundColor}>
                                                     {item.icon}
                                                 </Button>
                                             </Tooltip>
@@ -1374,6 +1459,11 @@ export default function Layout() {
                 </Box>
                 <Box display={['none', 'flex']} w={'19vw'} mr={'2vw'}>
                     {/* Some Stuff here */}
+                    <chakra.div w={'100%'}>
+                        <Button onClick={toggleColorMode}>
+                            Toggle {colorMode === "light" ? "Dark" : "Light"}
+                        </Button>
+                    </chakra.div>
                 </Box>
             </Stack>
         </chakra.div>
