@@ -12,7 +12,16 @@ import {
 	Center,
 	SimpleGrid,
 	ListItem,
-	List,
+	OrderedList,
+	Modal,
+	ModalOverlay,
+	ModalContent,
+	ModalHeader,
+	ModalFooter,
+	ModalBody,
+	ModalCloseButton,
+	useDisclosure,
+	Input,
 } from "@chakra-ui/react";
 import { fabric } from "fabric";
 import "fabric-history";
@@ -55,6 +64,9 @@ export default function Layout() {
 	// Initialize Canvas
 	const [canvas, setCanvas] = useState(null);
 
+	// Variable to store current selected object
+	const [currentObject, setCurrentObject] = useState(null);
+
 	/**
 	 * Simulation Related State Variables
 	 */
@@ -67,7 +79,7 @@ export default function Layout() {
 	const [refLineY, setRefLineY] = useState(null);
 
 	// Array to store all shots played
-	var [arrayOfRallies, setArrayOfRallies] = useState({
+	const [arrayOfRallies, setArrayOfRallies] = useState({
 		numRallies: 0,
 		currentActiveIndex: -1,
 		rallies: [
@@ -79,8 +91,18 @@ export default function Layout() {
 		],
 	});
 
+	// updating the current active index for rallies
 	const [currentActiveIndex, setCurrentActiveIndex] = useState(0);
 	const [numRallies, setNumRallies] = useState(0);
+
+	// disclosure variables for controlling the change name modal
+	const { isOpen, onOpen, onClose } = useDisclosure();
+
+	// list of all the rallies and their respective information
+	const [listOfRallies, setListOfRallies] = useState([]);
+
+	// reference variable to get the rally name or footwork name
+	const rallyOrFootworkName = useRef(null);
 
 	// Store Gridlines and their values
 	const [gridLines, setGridlines] = useState({
@@ -92,14 +114,27 @@ export default function Layout() {
 	// Store Gridline references
 	const [gridLineRefs, setGridLineRefs] = useState([]);
 
-	// Array to store Footwork patterns
-	const [footworkArray, setFootworkArray] = useState([]);
+	// Array to store all footwork patterns
+	const [arrayOfFootwork, setArrayOfFootwork] = useState({
+		numFootworks: 0,
+		currentActiveIndex: -1,
+		footworks: [
+			{
+				name: "",
+				lastY: 0,
+				movements: [],
+			},
+		],
+	});
 
-	// Variable to tell rally in which half was last point placed
-	var [rallyLastY, setRallyLastY] = useState(0);
+	// variables for updating the numFootworks and currentActiveIndex of footwork
+	const [currentActiveIndexFootwork, setCurrentActiveIndexFootwork] =
+		useState(0);
+	const [numFootworks, setNumFootworks] = useState(0);
+
+	const [listOfFootworks, setListOfFootworks] = useState([]);
 
 	// Variable to tell footwork in which half action is happening
-	var [footworkLastY] = useState(0);
 
 	/**
 	 * Common State Variables
@@ -162,6 +197,34 @@ export default function Layout() {
 		loadCanvas();
 		// eslint-disable-next-line
 	}, [boxDiv.current]);
+
+	/**
+	 * Add Object Select Listener
+	 * Add Object De-select Listener
+	 * Following 2 functions do the above task
+	 * First function is responsible for setting and unsetting of object variable
+	 * Second function is required to check initialization of Canvas (exception handling)
+	 * and setting listerners accordingly
+	 * @updates {canvas}
+	 * @returns none
+	 */
+
+	const updateSelectedObject = () => {
+		setCurrentObject(canvas.getActiveObject());
+	};
+
+	// Check if Canvas is Initialized, if yes, add Object Listeners to it
+	(() => {
+		if (canvas === null) {
+			setTimeout(1000, this);
+		} else {
+			canvas.on("selection:created", updateSelectedObject);
+			canvas.on("selection:updated", updateSelectedObject);
+			canvas.on("selection:cleared", updateSelectedObject);
+			canvas.on("object:modified", updateSelectedObject);
+			return;
+		}
+	})();
 
 	/**
 	 * Clears all Mouse Events for canvas
@@ -636,7 +699,7 @@ export default function Layout() {
 	 * Calls all above functions as per options
 	 */
 
-	const controlsmenu = [
+	const objectsMenu = [
 		{
 			name: "Draw",
 			icon: <BiEdit />,
@@ -677,6 +740,13 @@ export default function Layout() {
 			icon: <BiText />,
 			func: addText,
 		},
+	];
+
+	/**
+	 * Control Objects using a simple set of Controls
+	 */
+
+	const canvasControlMenu = [
 		{
 			name: "Undo",
 			icon: <BiUndo />,
@@ -783,7 +853,7 @@ export default function Layout() {
 				strokeWidth: 3,
 				strokeDashArray: [15, 15],
 			});
-			// console.log(i);
+			console.log(i);
 			gridLineRefs.push(line);
 			setGridLineRefs([...gridLineRefs]);
 		}
@@ -852,7 +922,7 @@ export default function Layout() {
 	 * Creates Rally where user can select any point on court
 	 * after which he has to select a point on Vertically opposite side
 	 * of current point if Canvas was divided into 2 vertical zones
-	 * @updates {arrayOfRallies, rallyLastY}
+	 * @updates {arrayOfRallies}
 	 * @returns none
 	 * @todo Add support for multiple rallies to be used
 	 *       which will have different colors for lines
@@ -875,6 +945,7 @@ export default function Layout() {
 		// Check if Any rallies are present or not
 		// If not, then just create one
 		if (numRallies === 0) {
+			// Setting State Variables differently
 			setNumRallies(numRallies + 1);
 			setCurrentActiveIndex(0);
 			setArrayOfRallies({
@@ -889,20 +960,21 @@ export default function Layout() {
 			let currentX = canvas.getPointer(event.e).x;
 			let currentY = canvas.getPointer(event.e).y;
 
-			// console.log(currentActiveIndex);
 			// If array is empty, then do not check where Point has been placed
 			if (arrayOfRallies.rallies[currentActiveIndex].shots.length === 0) {
+				arrayOfRallies.rallies[currentActiveIndex].name = "r0";
 				arrayOfRallies.rallies[currentActiveIndex].shots.push({
 					x: currentX,
 					y: currentY,
 				});
 
-				// Set rallyLastY value
+				// Set lastY value
 				arrayOfRallies.rallies[currentActiveIndex].lastY =
 					checkHalfVertical(currentY);
 
 				setArrayOfRallies({
 					rallies: {
+						name: arrayOfRallies.rallies[currentActiveIndex].name,
 						lastY: arrayOfRallies.rallies[currentActiveIndex].lastY,
 						shots: [...arrayOfRallies.rallies[currentActiveIndex].shots],
 					},
@@ -935,6 +1007,7 @@ export default function Layout() {
 
 				// console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
 			}
+
 			// Otherwise check in which half last Point was recorded
 			else if (arrayOfRallies.rallies[currentActiveIndex].shots.length > 0) {
 				let currPointLocY = checkHalfVertical(currentY);
@@ -1025,6 +1098,22 @@ export default function Layout() {
 	 */
 
 	const constructFootwork = () => {
+		// Check if Any footworks are present or not
+		// If not, then just create one
+		if (numFootworks === 0) {
+			// console.log(numFootworks);
+
+			// Setting State Variables differently
+			setNumFootworks(1);
+			setCurrentActiveIndexFootwork(0);
+
+			setArrayOfRallies({
+				numFootworks: numFootworks,
+				currentActiveIndex: currentActiveIndexFootwork,
+			});
+			// console.log(numFootworks);
+			// console.log(arrayOfFootwork);
+		}
 		clearMouseListeners();
 		setMode("Footwork");
 		canvas.on("mouse:down", (event) => {
@@ -1032,12 +1121,29 @@ export default function Layout() {
 			let currentY = canvas.getPointer(event.e).y;
 
 			// If array is empty, then do not check where Point has been placed
-			if (footworkArray.length === 0) {
-				footworkArray.push({
+			// console.log(currentActiveIndexFootwork);
+			if (
+				arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+					.length === 0
+			) {
+				arrayOfFootwork.footworks[currentActiveIndexFootwork].movements.push({
 					x: currentX,
 					y: currentY,
 				});
-				setFootworkArray([...footworkArray]);
+
+				// Set lastY value
+				arrayOfFootwork.footworks[currentActiveIndexFootwork].lastY =
+					checkHalfVertical(currentY);
+
+				setArrayOfFootwork({
+					footworks: {
+						lastY: arrayOfFootwork.footworks[currentActiveIndexFootwork].lastY,
+						movements: [
+							...arrayOfFootwork.footworks[currentActiveIndexFootwork]
+								.movements,
+						],
+					},
+				});
 
 				let square = new fabric.Rect({
 					left: currentX - 3,
@@ -1050,41 +1156,50 @@ export default function Layout() {
 					strokeWidth: 1,
 				});
 
-				let text = new fabric.IText(footworkArray.length + "", {
-					fontFamily: "arial black",
-					left: currentX + 12,
-					top: currentY,
-					stroke: "black",
-					fontSize: 20,
-					editable: false,
-					selectable: false,
-				});
+				let text = new fabric.IText(
+					arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+						.length + "",
+					{
+						fontFamily: "arial black",
+						left: currentX + 12,
+						top: currentY,
+						stroke: "black",
+						fontSize: 20,
+						editable: false,
+						selectable: false,
+					}
+				);
 
 				canvas.add(text);
 				canvas.add(square);
-
-				// Set rallyLastY value
-				footworkLastY = checkHalfVertical(currentY);
-				setRallyLastY(footworkLastY);
-				// console.log(
-				// 	"Last",
-				// 	rallyLastY,
-				// 	" Last Func : ",
-				// 	checkHalfVertical(currentY)
-				// );
 			}
-			// Otherwise check in which half last Point was recorded
-			else if (footworkArray.length > 0) {
-				let currPointLocY = checkHalfVertical(currentY);
-				// console.log("current ", currPointLocY);
-				// console.log("Compare ", currPointLocY, footworkLastY);
 
-				if (currPointLocY === footworkLastY) {
-					footworkArray.push({
+			// Otherwise check in which half last Point was recorded
+			else if (
+				arrayOfFootwork.footworks[currentActiveIndexFootwork].movements.length >
+				0
+			) {
+				let currPointLocY = checkHalfVertical(currentY);
+				// console.log("current ", currPointLocY)
+				// console.log("Compare ", currPointLocY, footworkLastY)
+
+				if (
+					currPointLocY ===
+					arrayOfFootwork.footworks[currentActiveIndexFootwork].lastY
+				) {
+					arrayOfFootwork.footworks[currentActiveIndexFootwork].movements.push({
 						x: currentX,
 						y: currentY,
 					});
-					setFootworkArray([...footworkArray]);
+
+					setArrayOfFootwork({
+						footworks: {
+							movements: [
+								...arrayOfFootwork.footworks[currentActiveIndexFootwork]
+									.movements,
+							],
+						},
+					});
 
 					let square = new fabric.Rect({
 						left: currentX - 3,
@@ -1097,22 +1212,38 @@ export default function Layout() {
 						strokeWidth: 1,
 					});
 
-					let text = new fabric.IText(footworkArray.length + "", {
-						fontFamily: "arial black",
-						left: currentX + 12,
-						top: currentY,
-						stroke: "black",
-						fontSize: 20,
-						editable: false,
-						selectable: false,
-					});
+					let text = new fabric.IText(
+						arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+							.length + "",
+						{
+							fontFamily: "arial black",
+							left: currentX + 12,
+							top: currentY,
+							stroke: "black",
+							fontSize: 20,
+							editable: false,
+							selectable: false,
+						}
+					);
 
 					let line = new fabric.Line(
 						[
-							footworkArray[footworkArray.length - 1].x,
-							footworkArray[footworkArray.length - 1].y,
-							footworkArray[footworkArray.length - 2].x,
-							footworkArray[footworkArray.length - 2].y,
+							arrayOfFootwork.footworks[currentActiveIndexFootwork].movements[
+								arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+									.length - 1
+							].x,
+							arrayOfFootwork.footworks[currentActiveIndexFootwork].movements[
+								arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+									.length - 1
+							].y,
+							arrayOfFootwork.footworks[currentActiveIndexFootwork].movements[
+								arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+									.length - 2
+							].x,
+							arrayOfFootwork.footworks[currentActiveIndexFootwork].movements[
+								arrayOfFootwork.footworks[currentActiveIndexFootwork].movements
+									.length - 2
+							].y,
 						],
 						{
 							stroke: "purple",
@@ -1138,7 +1269,7 @@ export default function Layout() {
 	 * Simulation of rallies
 	 */
 
-	const simulationMenu = [
+	const simulationRefs = [
 		{
 			name: "Check",
 			icon: <GiMagnifyingGlass />,
@@ -1149,39 +1280,123 @@ export default function Layout() {
 			icon: <BiGridSmall />,
 			func: showGrids,
 		},
+	];
+
+	/**
+	 * Menu for Controlling Rally
+	 */
+
+	const rallyMenu = [
 		{
 			name: "Rally",
 			icon: <GiShuttlecock />,
 			func: constructRally,
 		},
 		{
-			name: "Footwork",
-			icon: <RiFootprintFill />,
-			func: constructFootwork,
+			name: "Add Rally",
+			icon: <GiShuttlecock />,
+			func: onOpen,
 		},
 	];
 
 	/**
+	 * Menu for Controlling Footwork
+	 */
+
+	const footworkMenu = [
+		{
+			name: "Footwork",
+			icon: <RiFootprintFill />,
+			func: constructFootwork,
+		},
+		{
+			name: "Add Footwork",
+			icon: <GiShuttlecock />,
+			func: onOpen,
+		},
+	];
+
+	/**
+	 * Create a new rally in the state variable arrayOfRallies
+	 * @updates {currentActiveIndex, numRallies, arrayOfRallies}
+	 * @returns none
+	 * @problems previous state is reflected and does not ppend the current user inputed rally. Cannot find `shots` attribute in the newly created rally
+	 */
+	function addRally() {
+		setCurrentActiveIndex(currentActiveIndex + 1);
+		setNumRallies(numRallies + 1);
+		// clearMouseListeners();
+		setArrayOfRallies({
+			numRallies: numRallies,
+			currentActiveIndex: currentActiveIndex,
+			rallies: {
+				name: rallyOrFootworkName.current.value,
+				shots: [],
+				lastY: 0,
+			},
+		});
+		for (const i in arrayOfRallies) {
+			if (i === "rallies") {
+				listOfRallies.push(arrayOfRallies[i]);
+			}
+		}
+		setListOfRallies([...listOfRallies]);
+		console.log(arrayOfRallies);
+		constructRally();
+	}
+
+	/**
+	 * Create a new footwork in the state variable arrayOfFootworks
+	 * @updates {currentActiveIndexFootwork, numFootworks, arrayOfFootworks}
+	 * @returns none
+	 * @problems previous state is reflected and does not ppend the current user inputed footwork. Cannot find `movements` attribute in the newly created footwork
+	 */
+	function addFootwork() {
+		setCurrentActiveIndexFootwork(currentActiveIndexFootwork + 1);
+		setNumFootworks(numFootworks + 1);
+
+		setArrayOfFootwork({
+			numFootworks: numFootworks,
+			currentActiveIndex: currentActiveIndexFootwork,
+			footworks: {
+				name: rallyOrFootworkName.current.value,
+				lastY: 0,
+				movements: [],
+			},
+		});
+		for (const i in arrayOfFootwork) {
+			if (i === "footworks") {
+				listOfFootworks.push(arrayOfFootwork[i]);
+			}
+		}
+		setListOfFootworks([...listOfFootworks]);
+		constructFootwork();
+	}
+
+	/**
 	 * Displays the current number of rallies or footworks placed on the canvas by the user
 	 * @returns the chakra.div for displaying the rallies and footworks
+	 * @function {addRally, addFunction}
 	 */
 
 	const setRightMenu = () => {
-		const l = [];
-		const ralliesOrFootwork = mode === "Rally" ? "Rally" : "Footwork";
-		const addRallyOrFootwork = mode === "Rally" ? addRally : addFootwork;
-
-		if (arrayOfRallies.rallies != undefined) {
-			for (const i in arrayOfRallies.rallies) {
-				l.push(arrayOfRallies.rallies[i].name);
-			}
+		let ralliesOrFootwork = null;
+		let l = null;
+		if (mode === "Rally") {
+			l = listOfRallies;
+			ralliesOrFootwork = "Rallies";
+		} else if (mode === "Footwork") {
+			l = listOfFootworks;
+			ralliesOrFootwork = "Footworks";
+		} else {
+			l = [];
+			ralliesOrFootwork = "Nothing Selected";
 		}
-		console.log(l);
 		return (
 			<chakra.div>
 				<Center w="100%">
 					<Text fontSize={"2xl"} mb={"2vh"}>
-						Current {ralliesOrFootwork}
+						{ralliesOrFootwork}
 					</Text>
 				</Center>
 
@@ -1193,52 +1408,62 @@ export default function Layout() {
 					maxH="500"
 					minW="200"
 				>
-					<List justifyContent="center" alignItems="center">
-						{/* {l.map((i) => (
+					<OrderedList justifyContent="center" alignItems="center" spacing="5">
+						{l.map((i) => (
 							<ListItem>
-								{i.name} {i.lastY}
+								<SimpleGrid columns="1" px="4">
+									<Button>{i.name}</Button>
+								</SimpleGrid>
 							</ListItem>
-						))} */}
-						<ListItem>
-							<Button onClick={addRallyOrFootwork}>
-								Add {ralliesOrFootwork}
-							</Button>
-						</ListItem>
-					</List>
+						))}
+					</OrderedList>
 				</chakra.div>
 			</chakra.div>
 		);
 	};
 
-	/**
-	 * Create a new rally in the state variable arrayOfRallies
-	 * @updates {arrayOfRallies}
-	 * @returns none
-	 */
-	function addRally() {
-		console.log("add Rally: ", currentActiveIndex, numRallies);
-		setCurrentActiveIndex(currentActiveIndex + 1);
-		setNumRallies(numRallies + 1);
-	}
-	const addFootwork = () => {};
 	return (
 		<chakra.div my={5}>
 			<Stack direction={["column", "row"]}>
 				<Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
-					Some Stuff here
+					{/* Some Stuff here */}
+					{"TOP : " + (currentObject === null ? "NULL" : currentObject.top)}
 				</Box>
-				<Box w={"8vw"}>
+				<Box w={"10vw"} h={dims.boxH}>
 					<Center w="100%">
-						<Text fontSize={"2xl"} mb={"2vh"}>
-							Controls
-						</Text>
+						<Text fontSize={"2xl"}>Objects</Text>
 					</Center>
 					<Box display={["none", "flex"]}>
-						<SimpleGrid w={"8vw"} columns={2}>
-							{controlsmenu.map((item) => {
+						<SimpleGrid w={"8vw"} columns={2} maxH={"40vh"} overflowY="auto">
+							{objectsMenu.map((item) => {
 								return (
-									<Flex>
-										<Tooltip key={item.name} label={item.name}>
+									<Flex scroll={"true"} key={item.name}>
+										<Tooltip label={item.name}>
+											<Button
+												px={"0.2vw"}
+												py={"3vh"}
+												onClick={item.func}
+												fontSize={"xl"}
+												w={"100%"}
+												bg={mode === item.name ? "blue.400" : "white"}
+											>
+												{item.icon}
+											</Button>
+										</Tooltip>
+									</Flex>
+								);
+							})}
+						</SimpleGrid>
+					</Box>
+					<Center w="100%">
+						<Text fontSize={"2xl"}>Object Controls</Text>
+					</Center>
+					<Box display={["none", "flex"]}>
+						<SimpleGrid w={"8vw"} columns={2} maxH={"20vh"} overflowY="auto">
+							{canvasControlMenu.map((item) => {
+								return (
+									<Flex scroll="true" key={item.name}>
+										<Tooltip label={item.name}>
 											<Button
 												px={"0.2vw"}
 												py={"3vh"}
@@ -1257,25 +1482,73 @@ export default function Layout() {
 					</Box>
 				</Box>
 				<Box
-					w={["100vw", "40vw", "40vw"]}
+					w={["100vw", "36vw", "40vw"]}
 					minW={"35vw"}
 					h={"95vh"}
 					ref={boxDiv}
 				>
 					<canvas id="canvas"></canvas>
 				</Box>
-				<Box w={"8vw"}>
+				<Box w={"10vw"}>
+					<Box w="100%">
+						<Text fontSize={"2xl"}>Reference Points</Text>
+					</Box>
+					<Box display={["none", "flex"]}>
+						<SimpleGrid w={"8vw"} columns={2} maxH={"15vh"} overflowY="auto">
+							{simulationRefs.map((item) => {
+								return (
+									<Flex scroll="true" key={item.name}>
+										<Tooltip label={item.name}>
+											<Button
+												px={"0.2vw"}
+												py={"3vh"}
+												onClick={item.func}
+												fontSize={"xl"}
+												w={"100%"}
+												bg={mode === item.name ? "blue.400" : "white"}
+											>
+												{item.icon}
+											</Button>
+										</Tooltip>
+									</Flex>
+								);
+							})}
+						</SimpleGrid>
+					</Box>
 					<Center w="100%">
-						<Text fontSize={"2xl"} mb={"2vh"}>
-							Simulation
-						</Text>
+						<Text fontSize={"2xl"}>Rally Control</Text>
 					</Center>
 					<Box display={["none", "flex"]}>
-						<SimpleGrid w={"8vw"} columns={2}>
-							{simulationMenu.map((item) => {
+						<SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
+							{rallyMenu.map((item) => {
 								return (
-									<Flex>
-										<Tooltip key={item.name} label={item.name}>
+									<Flex scroll="true" key={item.name}>
+										<Tooltip label={item.name}>
+											<Button
+												px={"0.2vw"}
+												py={"3vh"}
+												onClick={item.func}
+												fontSize={"xl"}
+												w={"100%"}
+												bg={mode === item.name ? "blue.400" : "white"}
+											>
+												{item.icon}
+											</Button>
+										</Tooltip>
+									</Flex>
+								);
+							})}
+						</SimpleGrid>
+					</Box>
+					<Center w="100%">
+						<Text fontSize={"2xl"}>Footwork Control</Text>
+					</Center>
+					<Box display={["none", "flex"]}>
+						<SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
+							{footworkMenu.map((item) => {
+								return (
+									<Flex scroll="true" key={item.name}>
+										<Tooltip label={item.name}>
 											<Button
 												px={"0.2vw"}
 												py={"3vh"}
@@ -1297,6 +1570,36 @@ export default function Layout() {
 					{setRightMenu()}
 				</Box>
 			</Stack>
+
+			{/* Modal to take the user input for naming the rally or footwork */}
+			<Modal isOpen={isOpen} onClose={onClose}>
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>
+						{mode === "Rally" ? "Set Rally Name" : "Set Footwork Name"}
+					</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<Input
+							placeholder={mode === "Rally" ? "Rally Name" : "Footwork Name"}
+							ref={rallyOrFootworkName}
+						/>
+					</ModalBody>
+
+					<ModalFooter>
+						<Button colorScheme="red" mx="3" onClick={onClose}>
+							Close
+						</Button>
+						<Button
+							colorScheme="blue"
+							onClick={mode === "Rally" ? addRally : addFootwork}
+							onMouseUp={onClose}
+						>
+							Set Name
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
 		</chakra.div>
 	);
 }
