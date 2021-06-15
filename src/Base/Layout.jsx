@@ -98,15 +98,8 @@ export default function Layout() {
 		],
 	});
 
-	// updating the current active index for rallies
-	const [currentActiveIndex, setCurrentActiveIndex] = useState(0);
-	const [numRallies, setNumRallies] = useState(0);
-
 	// disclosure variables for controlling the change name modal
 	const { isOpen, onOpen, onClose } = useDisclosure();
-
-	// list of all the rallies and their respective information
-	const [listOfRallies, setListOfRallies] = useState([]);
 
 	// reference variable to get the rally name or footwork name
 	const rallyOrFootworkName = useRef(null);
@@ -952,24 +945,11 @@ export default function Layout() {
 	 */
 
 	const constructRally = () => {
-		// Check if Any rallies are present or not
-		// If not, then just create one
-		if (numRallies === 0) {
-			// Setting State Variables differently
 
-			// setArrayOfRallies({
-			//     numRallies: numRallies,
-			//     currentActiveIndex: arrayOfRallies.currentActiveIndex
-			// })
-
-			setArrayOfRallies((prevArrayOfRallies) => ({
-				...prevArrayOfRallies,
-				numRallies: numRallies + 1,
-				currentActiveIndex: 0,
-			}));
-			console.log(arrayOfRallies);
-		}
-
+        if (arrayOfRallies.numRallies === 0) {
+            onOpen()
+        }
+		
 		clearMouseListeners();
 		setMode("Rally");
 		canvas.on("mouse:down", (event) => {
@@ -977,20 +957,20 @@ export default function Layout() {
 			let currentY = canvas.getPointer(event.e).y;
 
 			// If array is empty, then do not check where Point has been placed
-			if (arrayOfRallies.rallies[currentActiveIndex].shots.length === 0) {
-				arrayOfRallies.rallies[currentActiveIndex].shots.push({
+			if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length === 0) {
+				arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
 					x: currentX,
 					y: currentY,
 				});
 
 				// Set lastY value
-				arrayOfRallies.rallies[currentActiveIndex].lastY =
+				arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY =
 					checkHalfVertical(currentY);
 
 				// setArrayOfRallies({
 				//     rallies: {
-				//         lastY: arrayOfRallies.rallies[currentActiveIndex].lastY,
-				//         shots: [...arrayOfRallies.rallies[currentActiveIndex].shots]
+				//         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+				//         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
 				//     }
 				// })
 
@@ -1010,7 +990,7 @@ export default function Layout() {
 				});
 
 				let text = new fabric.IText(
-					arrayOfRallies.rallies[currentActiveIndex].shots.length + "",
+					arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length + "",
 					{
 						fontFamily: "arial black",
 						left: currentX + 12,
@@ -1028,31 +1008,31 @@ export default function Layout() {
 			}
 
 			// Otherwise check in which half last Point was recorded
-			else if (arrayOfRallies.rallies[currentActiveIndex].shots.length > 0) {
+			else if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length > 0) {
 				let currPointLocY = checkHalfVertical(currentY);
 				// console.log("current ", currPointLocY)
 				// console.log("Compare ", curshotArray.lengthrPointLocY, rallyLastY)
 
 				if (
-					currPointLocY === arrayOfRallies.rallies[currentActiveIndex].lastY
+					currPointLocY === arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY
 				) {
 					// Do nothing, as selected point
 					// is not on opposite vertical half
 					// Invalid Point Selected
 				} else {
-					arrayOfRallies.rallies[currentActiveIndex].shots.push({
+					arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
 						x: currentX,
 						y: currentY,
 					});
 
 					// Set rallyLastY value
-					arrayOfRallies.rallies[currentActiveIndex].lastY =
+					arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY =
 						checkHalfVertical(currentY);
 
 					// setArrayOfRallies({
 					//     rallies: {
-					//         lastY: arrayOfRallies.rallies[currentActiveIndex].lastY,
-					//         shots: [...arrayOfRallies.rallies[currentActiveIndex].shots]
+					//         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+					//         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
 					//     }
 					// })
 
@@ -1072,7 +1052,7 @@ export default function Layout() {
 					});
 
 					let text = new fabric.IText(
-						arrayOfRallies.rallies[currentActiveIndex].shots.length + "",
+						arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length + "",
 						{
 							fontFamily: "arial black",
 							left: currentX + 12,
@@ -1085,17 +1065,17 @@ export default function Layout() {
 
 					let line = new fabric.Line(
 						[
-							arrayOfRallies.rallies[currentActiveIndex].shots[
-								arrayOfRallies.rallies[currentActiveIndex].shots.length - 1
+							arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+								arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1
 							].x,
-							arrayOfRallies.rallies[currentActiveIndex].shots[
-								arrayOfRallies.rallies[currentActiveIndex].shots.length - 1
+							arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+								arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 1
 							].y,
-							arrayOfRallies.rallies[currentActiveIndex].shots[
-								arrayOfRallies.rallies[currentActiveIndex].shots.length - 2
+							arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+								arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 2
 							].x,
-							arrayOfRallies.rallies[currentActiveIndex].shots[
-								arrayOfRallies.rallies[currentActiveIndex].shots.length - 2
+							arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots[
+								arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length - 2
 							].y,
 						],
 						{
@@ -1391,25 +1371,25 @@ export default function Layout() {
 	 * @problems previous state is reflected and does not ppend the current user inputed rally. Cannot find `shots` attribute in the newly created rally
 	 */
 	function addRally() {
-		setCurrentActiveIndex(currentActiveIndex + 1);
-		setNumRallies(numRallies + 1);
-		// clearMouseListeners();
-		setArrayOfRallies({
-			numRallies: numRallies,
-			currentActiveIndex: currentActiveIndex,
-			rallies: {
-				name: rallyOrFootworkName.current.value,
-				shots: [],
-				lastY: 0,
-			},
-		});
-		for (const i in arrayOfRallies) {
-			if (i === "rallies") {
-				listOfRallies.push(arrayOfRallies[i]);
-			}
-		}
-		setListOfRallies([...listOfRallies]);
-		console.log(arrayOfRallies);
+        
+        // New code added for updating arrayOfRallies (New method)
+        setArrayOfRallies(prevArrayOfRallies => ({
+            ...prevArrayOfRallies,
+            currentActiveIndex: arrayOfRallies.currentActiveIndex + 1,
+            numRallies: arrayOfRallies.numRallies + 1
+        }))
+
+        arrayOfRallies.rallies.push({})
+        arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].name = rallyOrFootworkName.current.value
+
+        setArrayOfRallies((prevArrayOfRallies) => ({
+            ...prevArrayOfRallies,
+            rallies: [...arrayOfRallies.rallies],
+        }));
+
+        console.log(arrayOfRallies)
+
+        // Till here
 		constructRally();
 	}
 
@@ -1451,7 +1431,7 @@ export default function Layout() {
 		let ralliesOrFootwork = null;
 		let l = null;
 		if (mode === "Rally") {
-			l = listOfRallies;
+			l = arrayOfRallies.rallies;
 			ralliesOrFootwork = "Rallies";
 		} else if (mode === "Footwork") {
 			l = listOfFootworks;
