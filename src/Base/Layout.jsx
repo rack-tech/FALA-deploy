@@ -11,6 +11,17 @@ import {
   Flex,
   Center,
   SimpleGrid,
+  useColorMode,
+  useColorModeValue,
+  Table,
+  Thead,
+  Tbody,
+  Tfoot,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  Input,
 } from "@chakra-ui/react";
 import { fabric } from "fabric";
 import "fabric-history";
@@ -31,11 +42,15 @@ import {
   IoEllipseOutline,
   RiSubtractLine,
   RiFootprintFill,
+  BsPlay,
 } from "react-icons/all";
 
 // Layout Function has Layout of Court as well as controls
 
 export default function Layout() {
+  // Color Mode State Variable
+  const { colorMode, toggleColorMode } = useColorMode();
+
   /**
    * Following State Variables are required to Draw Canvas,
    * its height, width, etc.
@@ -53,6 +68,9 @@ export default function Layout() {
   // Initialize Canvas
   const [canvas, setCanvas] = useState(null);
 
+  // Variable to store current selected object
+  const [currentObject, setCurrentObject] = useState(null);
+
   /**
    * Simulation Related State Variables
    */
@@ -65,9 +83,9 @@ export default function Layout() {
   const [refLineY, setRefLineY] = useState(null);
 
   // Array to store all shots played
-  var [arrayOfRallies, setArrayOfRallies] = useState({
+  const [arrayOfRallies, setArrayOfRallies] = useState({
     numRallies: 0,
-    currentActiveIndex: -1,
+    currentActiveIndex: 0,
     rallies: [
       {
         name: "",
@@ -88,7 +106,7 @@ export default function Layout() {
   const [gridLineRefs, setGridLineRefs] = useState([]);
 
   // Array to store all footwork patterns
-  var [arrayOfFootwork, setArrayOfFootwork] = useState({
+  const [arrayOfFootwork, setArrayOfFootwork] = useState({
     numFootworks: 0,
     currentActiveIndex: -1,
     footworks: [
@@ -99,6 +117,9 @@ export default function Layout() {
       },
     ],
   });
+
+  // Variable to store animation object
+  const [animationObject, setAnimationObject] = useState(null);
 
   // Variable to tell footwork in which half action is happening
 
@@ -163,6 +184,34 @@ export default function Layout() {
     loadCanvas();
     // eslint-disable-next-line
   }, [boxDiv.current]);
+
+  /**
+   * Add Object Select Listener
+   * Add Object De-select Listener
+   * Following 2 functions do the above task
+   * First function is responsible for setting and unsetting of object variable
+   * Second function is required to check initialization of Canvas (exception handling)
+   * and setting listerners accordingly
+   * @updates {canvas}
+   * @returns none
+   */
+
+  const updateSelectedObject = () => {
+    setCurrentObject(canvas.getActiveObject());
+  };
+
+  // Check if Canvas is Initialized, if yes, add Object Listeners to it
+  (() => {
+    if (canvas === null) {
+      setTimeout(1000, this);
+    } else {
+      canvas.on("selection:created", updateSelectedObject);
+      canvas.on("selection:updated", updateSelectedObject);
+      canvas.on("selection:cleared", updateSelectedObject);
+      canvas.on("object:modified", updateSelectedObject);
+      return;
+    }
+  })();
 
   /**
    * Clears all Mouse Events for canvas
@@ -637,7 +686,7 @@ export default function Layout() {
    * Calls all above functions as per options
    */
 
-  const controlsmenu = [
+  const objectsMenu = [
     {
       name: "Draw",
       icon: <BiEdit />,
@@ -678,6 +727,13 @@ export default function Layout() {
       icon: <BiText />,
       func: addText,
     },
+  ];
+
+  /**
+   * Control Objects using a simple set of Controls
+   */
+
+  const canvasControlMenu = [
     {
       name: "Undo",
       icon: <BiUndo />,
@@ -877,13 +933,18 @@ export default function Layout() {
     // If not, then just create one
     if (arrayOfRallies.numRallies === 0) {
       // Setting State Variables differently
-      arrayOfRallies.numRallies = arrayOfRallies.numRallies + 1;
-      arrayOfRallies.currentActiveIndex = 0;
 
-      setArrayOfRallies({
-        numRallies: arrayOfRallies.numRallies,
-        currentActiveIndex: arrayOfRallies.currentActiveIndex,
-      });
+      // setArrayOfRallies({
+      //     numRallies: arrayOfRallies.numRallies,
+      //     currentActiveIndex: arrayOfRallies.currentActiveIndex
+      // })
+
+      setArrayOfRallies((prevArrayOfRallies) => ({
+        ...prevArrayOfRallies,
+        numRallies: arrayOfRallies.numRallies + 1,
+        currentActiveIndex: 0,
+      }));
+      console.log(arrayOfRallies);
     }
 
     clearMouseListeners();
@@ -906,16 +967,17 @@ export default function Layout() {
         arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY =
           checkHalfVertical(currentY);
 
-        setArrayOfRallies({
-          rallies: {
-            lastY:
-              arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
-            shots: [
-              ...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex]
-                .shots,
-            ],
-          },
-        });
+        // setArrayOfRallies({
+        //     rallies: {
+        //         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+        //         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+        //     }
+        // })
+
+        setArrayOfRallies((prevArrayOfRallies) => ({
+          ...prevArrayOfRallies,
+          rallies: [...arrayOfRallies.rallies],
+        }));
 
         let circle = new fabric.Circle({
           radius: 6,
@@ -972,16 +1034,17 @@ export default function Layout() {
           arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY =
             checkHalfVertical(currentY);
 
-          setArrayOfRallies({
-            rallies: {
-              lastY:
-                arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
-              shots: [
-                ...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex]
-                  .shots,
-              ],
-            },
-          });
+          // setArrayOfRallies({
+          //     rallies: {
+          //         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
+          //         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
+          //     }
+          // })
+
+          setArrayOfRallies((prevArrayOfRallies) => ({
+            ...prevArrayOfRallies,
+            rallies: [...arrayOfRallies.rallies],
+          }));
 
           let circle = new fabric.Circle({
             radius: 6,
@@ -1052,16 +1115,13 @@ export default function Layout() {
     // Check if Any footworks are present or not
     // If not, then just create one
     if (arrayOfFootwork.numFootworks === 0) {
-      // Setting State Variables differently
-      arrayOfFootwork.numFootworks = arrayOfRallies.numFootworks + 1;
-      arrayOfFootwork.currentActiveIndex = 0;
-
-      setArrayOfRallies({
-        numFootworks: arrayOfFootwork.numFootworks,
-        currentActiveIndex: arrayOfFootwork.currentActiveIndex,
-      });
-      console.log(arrayOfFootwork);
+      setArrayOfFootwork((prevArrayOfFootwork) => ({
+        ...prevArrayOfFootwork,
+        numFootworks: arrayOfFootwork.numFootworks + 1,
+        currentActiveIndex: 0,
+      }));
     }
+
     clearMouseListeners();
     setMode("Footwork");
     canvas.on("mouse:down", (event) => {
@@ -1085,17 +1145,17 @@ export default function Layout() {
         arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY =
           checkHalfVertical(currentY);
 
-        setArrayOfFootwork({
-          footworks: {
-            lastY:
-              arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex]
-                .lastY,
-            movements: [
-              ...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex]
-                .movements,
-            ],
-          },
-        });
+        // setArrayOfFootwork({
+        //     footworks: {
+        //         lastY: arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].lastY,
+        //         movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+        //     }
+        // })
+
+        setArrayOfFootwork((prevArrayOfFootwork) => ({
+          ...prevArrayOfFootwork,
+          footworks: [...arrayOfFootwork.footworks],
+        }));
 
         let square = new fabric.Rect({
           left: currentX - 3,
@@ -1146,14 +1206,15 @@ export default function Layout() {
             y: currentY,
           });
 
-          setArrayOfFootwork({
-            footworks: {
-              movements: [
-                ...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex]
-                  .movements,
-              ],
-            },
-          });
+          // setArrayOfFootwork({
+          //     footworks: {
+          //         movements: [...arrayOfFootwork.footworks[arrayOfFootwork.currentActiveIndex].movements]
+          //     }
+          // })
+
+          setArrayOfFootwork((prevArrayOfFootwork) => ({
+            footworks: [...arrayOfFootwork.footworks],
+          }));
 
           let square = new fabric.Rect({
             left: currentX - 3,
@@ -1223,11 +1284,51 @@ export default function Layout() {
   };
 
   /**
+   * Create Animation for Footwork as well as Rally
+   * Animation can be paused using a button
+   * Animation can be stopped using another button
+   * @returns none
+   * @updates {animationObject}
+   */
+
+  const setAndPlayAnimationObject = () => {
+    // If mode = Rally, then get currentActiveIndex of Rally
+    // Else If mode = Footwork, then get currentActiveIndex of Footwork
+    // Then update path variable that will be used to animate
+    // Start Animation
+    if (mode === "Rally") {
+      // Get currentActiveIndex's shots array
+      let pathShots = "";
+      let shots =
+        arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots;
+      console.log(shots);
+      if (shots.length > 0) {
+        pathShots += "M " + shots[0].x + " " + shots[0].y;
+        for (var i = 1; i < shots.length; i++) {
+          pathShots += " L " + shots[i].x + " " + shots[i].y;
+        }
+      }
+
+      if (shots.length > 0) {
+        let path = new fabric.Path(pathShots, {
+          stroke: "black",
+          fill: "transparent",
+          top: shots[0].y,
+          left: shots[0].x,
+        });
+        canvas.add(path);
+        setAnimationObject(path);
+        console.log(animationObject);
+      }
+    }
+  };
+
+  /**
    * Simulation Menu consists of Controls for
    * Simulation of rallies
    */
 
-  const simulationMenu = [
+  const simulationRefs = [
     {
       name: "Check",
       icon: <GiMagnifyingGlass />,
@@ -1238,11 +1339,30 @@ export default function Layout() {
       icon: <BiGridSmall />,
       func: showGrids,
     },
+  ];
+
+  /**
+   * Menu for Controlling Rally
+   */
+
+  const rallyMenu = [
     {
       name: "Rally",
       icon: <GiShuttlecock />,
       func: constructRally,
     },
+    {
+      name: "Set Rally",
+      icon: <BsPlay />,
+      func: setAndPlayAnimationObject,
+    },
+  ];
+
+  /**
+   * Menu for Controlling Footwork
+   */
+
+  const footworkMenu = [
     {
       name: "Footwork",
       icon: <RiFootprintFill />,
@@ -1250,71 +1370,130 @@ export default function Layout() {
     },
   ];
 
-  //   pannelShow contains all the attributes for selected objects
-  const pannelShow = [
+  /**
+   * Mode of Color as per colorModeValue
+   */
+
+  let currentBackgroundColor = useColorModeValue("white", "gray.800");
+  let currentLineColor = useColorModeValue("gray.800", "white.200");
+
+  const leftPannel = [
     {
-      attribute_name: "Selected Object",
-    //   func: findObject,
+      name: "radius",
     },
     {
-      attribute_name: "Radius",
-    //   func: findObject,
+      name: "height",
     },
     {
-      attribute_name: "Length",
-    //   func: findObject,
+      name: "width",
     },
     {
-      attribute_name: "Width",
-    //   func: findObject,
-    },
-    
-    {
-      attribute_name: "Color",
-    //   func: findObject,
+      name: "fill",
     },
     {
-      attribute_name: "Angle",
-    //   func: findObject,
+      name: "angle",
+    },
+    {
+      name: "top",
+    },
+    {
+      name: "left",
+    },
+    {
+      name: "stroke",
+    },
+    {
+      name: "rx",
+    },
+    {
+      name: 'ry',
     },
   ];
-
-  
 
   return (
     <chakra.div my={5}>
       <Stack direction={["column", "row"]}>
-        <Box display={["none", "flex"]} w={"19vw"} ml={"2.4vw"} mt={"2vw"}>
-          <Stack direction={["column", "row"]} spacing="24px">
-            <Box w={"17vw"} h={"40vw"} bg="gray.200" borderRadius={"1vw"}>
-              <Text align={"center"} mt={"1vw"} fontSize={"1.3vw"} fontWeight={"semibold"}>
-                Attributes
-              </Text>
-              {pannelShow.map((object) => {
-                return <Text ml={"1.3vw"} mt={"1vh"} fontSize={"1.6vh"}>{object.attribute_name} : </Text>;
+        <Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
+          {/* {"TOP : " + (currentObject === null ? "NULL" : currentObject.top)} */}
+          <Table variant="simple" maxH={'10vh'} overflowY='auto' size='xsm'>
+            <Thead>
+              <Tr>
+                <Th>Attribute</Th>
+                <Th>Value</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {leftPannel.map((obj) => {
+                return (
+                  <Tr>
+                    <Td>
+                      <Text> {obj.name}</Text>
+                    </Td>
+                    <Td>
+                      <Input
+                        placeholder={
+                          currentObject == null ? "None" : currentObject.get(obj.name)
+                        }
+                      />
+                    </Td>
+                  </Tr>
+                );
               })}
-            </Box>
-          </Stack>
-        </Box>
-        <Box w={"8vw"}>
+            </Tbody>
+          </Table>
+          </Box>
+        <Box w={"10vw"} h={dims.boxH}>
           <Center w="100%">
-            <Text fontSize={"2xl"} mb={"2vh"}>
-              Controls
-            </Text>
+            <Text fontSize={"2xl"}>Objects</Text>
           </Center>
           <Box display={["none", "flex"]}>
-            <SimpleGrid w={"8vw"} columns={2} h={"40vh"} overflowY="scroll">
-              {controlsmenu.map((item) => {
+            <SimpleGrid w={"8vw"} columns={2} maxH={"40vh"} overflowY="auto">
+              {objectsMenu.map((item) => {
                 return (
-                  <Flex scroll>
-                    <Tooltip key={item.name} label={item.name}>
+                  <Flex scroll={"true"} key={item.name}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        px={"0.2vw"}
+                        py={"3vh"}
+                        onClick={item.func}
+                        color={currentLineColor}
+                        fontSize={"xl"}
+                        w={"100%"}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                  </Flex>
+                );
+              })}
+            </SimpleGrid>
+          </Box>
+          <Center w="100%">
+            <Text fontSize={"2xl"}>Object Controls</Text>
+          </Center>
+          <Box display={["none", "flex"]}>
+            <SimpleGrid w={"8vw"} columns={2} maxH={"20vh"} overflowY="auto">
+              {canvasControlMenu.map((item) => {
+                return (
+                  <Flex scroll="true" key={item.name}>
+                    <Tooltip label={item.name}>
                       <Button
                         px={"0.2vw"}
                         py={"3vh"}
                         onClick={item.func}
                         fontSize={"xl"}
                         w={"100%"}
-                        bg={mode === item.name ? "blue.400" : "white"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
                       >
                         {item.icon}
                       </Button>
@@ -1326,32 +1505,95 @@ export default function Layout() {
           </Box>
         </Box>
         <Box
-          w={["100vw", "40vw", "40vw"]}
+          w={["100vw", "36vw", "40vw"]}
           minW={"35vw"}
           h={"95vh"}
           ref={boxDiv}
         >
           <canvas id="canvas"></canvas>
         </Box>
-        <Box w={"8vw"}>
-          <Center w="100%">
-            <Text fontSize={"2xl"} mb={"2vh"}>
-              Simulation
-            </Text>
-          </Center>
+        <Box w={"10vw"}>
+          <Box w="100%">
+            <Text fontSize={"2xl"}>Reference Points</Text>
+          </Box>
           <Box display={["none", "flex"]}>
-            <SimpleGrid w={"8vw"} columns={2}>
-              {simulationMenu.map((item) => {
+            <SimpleGrid w={"8vw"} columns={2} maxH={"15vh"} overflowY="auto">
+              {simulationRefs.map((item) => {
                 return (
-                  <Flex>
-                    <Tooltip key={item.name} label={item.name}>
+                  <Flex scroll="true" key={item.name}>
+                    <Tooltip label={item.name}>
                       <Button
                         px={"0.2vw"}
                         py={"3vh"}
                         onClick={item.func}
                         fontSize={"xl"}
                         w={"100%"}
-                        bg={mode === item.name ? "blue.400" : "white"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                  </Flex>
+                );
+              })}
+            </SimpleGrid>
+          </Box>
+          <Center w="100%">
+            <Text fontSize={"2xl"}>Rally Control</Text>
+          </Center>
+          <Box display={["none", "flex"]}>
+            <SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
+              {rallyMenu.map((item) => {
+                return (
+                  <Flex scroll="true" key={item.name}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        px={"0.2vw"}
+                        py={"3vh"}
+                        onClick={item.func}
+                        fontSize={"xl"}
+                        w={"100%"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                  </Flex>
+                );
+              })}
+            </SimpleGrid>
+          </Box>
+          <Center w="100%">
+            <Text fontSize={"2xl"}>Footwork Control</Text>
+          </Center>
+          <Box display={["none", "flex"]}>
+            <SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
+              {footworkMenu.map((item) => {
+                return (
+                  <Flex scroll="true" key={item.name}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        px={"0.2vw"}
+                        py={"3vh"}
+                        onClick={item.func}
+                        fontSize={"xl"}
+                        w={"100%"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
                       >
                         {item.icon}
                       </Button>
@@ -1363,7 +1605,12 @@ export default function Layout() {
           </Box>
         </Box>
         <Box display={["none", "flex"]} w={"19vw"} mr={"2vw"}>
-          Some Stuff here
+          {/* Some Stuff here */}
+          <chakra.div w={"100%"}>
+            <Button onClick={toggleColorMode}>
+              Toggle {colorMode === "light" ? "Dark" : "Light"}
+            </Button>
+          </chakra.div>
         </Box>
       </Stack>
     </chakra.div>
