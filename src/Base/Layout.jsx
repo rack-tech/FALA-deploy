@@ -1377,36 +1377,50 @@ export default function Layout() {
   let currentBackgroundColor = useColorModeValue("white", "gray.800");
   let currentLineColor = useColorModeValue("gray.800", "white.200");
 
+
+  /**
+   * left panel displays properties of selected object and can be dynamicaly changed
+   */
   const leftPannel = [
     {
-      name: "radius",
+      name: "Radius",
+      prop: "radius",
     },
     {
-      name: "height",
+      name: "Height",
+      prop: "height",
     },
     {
-      name: "width",
+      name: "Width",
+      prop: "width",
     },
     {
-      name: "fill",
+      name: "Fill",
+      prop: "fill",
     },
     {
-      name: "angle",
+      name: "Angle",
+      prop: "angle",
     },
     {
-      name: "top",
+      name: "Top",
+      prop: "top",
     },
     {
-      name: "left",
+      name: "Left",
+      prop: "left",
     },
     {
-      name: "stroke",
+      name: "Stroke",
+      prop: "stroke",
     },
     {
-      name: "rx",
+      name: "Radius x",
+      prop: "rx",
     },
     {
-      name: 'ry',
+      name: 'Radius y',
+      prop: 'ry',
     },
   ];
 
@@ -1414,7 +1428,6 @@ export default function Layout() {
     <chakra.div my={5}>
       <Stack direction={["column", "row"]}>
         <Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
-          {/* {"TOP : " + (currentObject === null ? "NULL" : currentObject.top)} */}
           <Table variant="simple">
             <Thead>
               <Tr>
@@ -1432,7 +1445,7 @@ export default function Layout() {
                     <Td>
                       <Input
                         placeholder={
-                          currentObject == null ? "None" : currentObject.get(obj.name)
+                          currentObject == null ? "None" : currentObject.get(obj.prop)
                         }
                       />
                     </Td>
