@@ -16,11 +16,8 @@ import {
   Table,
   Thead,
   Tbody,
-  Tfoot,
   Tr,
-  Th,
   Td,
-  TableCaption,
   Input,
 } from "@chakra-ui/react";
 import { fabric } from "fabric";
@@ -1377,7 +1374,6 @@ export default function Layout() {
   let currentBackgroundColor = useColorModeValue("white", "gray.800");
   let currentLineColor = useColorModeValue("gray.800", "white.200");
 
-
   /**
    * left panel displays properties of selected object and can be dynamicaly changed
    */
@@ -1419,8 +1415,8 @@ export default function Layout() {
       prop: "rx",
     },
     {
-      name: 'Radius y',
-      prop: 'ry',
+      name: "Radius y",
+      prop: "ry",
     },
   ];
 
@@ -1428,13 +1424,8 @@ export default function Layout() {
     <chakra.div my={5}>
       <Stack direction={["column", "row"]}>
         <Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Attribute</Th>
-                <Th>Value</Th>
-              </Tr>
-            </Thead>
+          <Table variant="simple" maxH={"10vh"} overflowY="auto" size="xsm">
+            <Thead>OBJECT PROPERTIES</Thead>
             <Tbody>
               {leftPannel.map((obj) => {
                 return (
@@ -1445,16 +1436,32 @@ export default function Layout() {
                     <Td>
                       <Input
                         placeholder={
-                          currentObject == null ? "None" : currentObject.get(obj.prop)
+                          currentObject == null
+                            ? "None"
+                            : currentObject.get(obj.prop)
                         }
+                        onChange={null}
                       />
                     </Td>
                   </Tr>
                 );
               })}
             </Tbody>
+            <Box>
+              <Flex mt={10}>
+                <Button colorScheme="blue" onClick={loadCanvas}>
+                  Reload Canvas
+                </Button>
+              </Flex>
+              <Input placeholder="Horizontal Grid Size"  name="x" size="md" mt={12} />
+              <Input placeholder="Vertical Grid Size" name="y" size="md" mt={2} />
+              <Button colorScheme="blue" mt={3}
+              // onClick={initGridLines}
+              >Set Grid Lines</Button>
+            </Box>
           </Table>
         </Box>
+
         <Box w={"10vw"} h={dims.boxH}>
           <Center w="100%">
             <Text fontSize={"2xl"}>Objects</Text>
