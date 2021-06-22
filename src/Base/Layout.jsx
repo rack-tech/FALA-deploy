@@ -197,6 +197,17 @@ export default function Layout() {
     }, [boxDiv.current]);
 
     /**
+     * Listends to arrayOfRallies
+     * Update state before doing any other task
+     * @updates None
+     * @returns None
+     */
+
+    useEffect(() => {
+        console.log(arrayOfRallies.currentActiveIndex)
+    }, [arrayOfRallies])
+
+    /**
      * Add Object Select Listener
      * Add Object De-select Listener
      * Following 2 functions do the above task
@@ -955,6 +966,7 @@ export default function Layout() {
             // console.log(arrayOfRallies.currentActiveIndex)
 
             // If array is empty, then do not check where Point has been placed
+            console.log("This matters", arrayOfRallies.currentActiveIndex)
             if (arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.length === 0) {
                 arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots.push({
                     x: currentX,
@@ -1020,13 +1032,6 @@ export default function Layout() {
                     // Set rallyLastY value
                     arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY =
                         checkHalfVertical(currentY);
-
-                    // setArrayOfRallies({
-                    //     rallies: {
-                    //         lastY: arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].lastY,
-                    //         shots: [...arrayOfRallies.rallies[arrayOfRallies.currentActiveIndex].shots]
-                    //     }
-                    // })
 
                     setArrayOfRallies((prevArrayOfRallies) => ({
                         ...prevArrayOfRallies,
@@ -1433,6 +1438,9 @@ export default function Layout() {
             ralliesOrFootwork = "Rallies";
         } else if (mode === "Footwork") {
             l = listOfFootworks;
+            if (l === undefined) {
+                l = []
+            }
             ralliesOrFootwork = "Footworks";
         } else {
             l = [];
@@ -1460,7 +1468,10 @@ export default function Layout() {
                         {l.map((i, index) => (
                             <ListItem key={index}>
                                 <SimpleGrid columns="1" mx="4">
-                                    <Button onClick={async () => {
+                                    <Button variant='ghost' 
+                                        border='solid'
+                                        bg={rallyColors[index % rallyColors.length]} 
+                                        onClick={async (e) => {
                                         await setArrayOfRallies(prevArrayOfRallies => ({
                                             ...prevArrayOfRallies,
                                             currentActiveIndex: parseInt(index)
