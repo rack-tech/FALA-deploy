@@ -30,6 +30,7 @@ import {
     Input,
     ModalFooter,
     ListItem,
+    Checkbox
 } from "@chakra-ui/react";
 import { fabric } from "fabric";
 import "fabric-history";
@@ -38,19 +39,23 @@ import {
     BiEdit,
     BiGridSmall,
     BiPointer,
-    BiRedo,
     BiText,
     BiTrash,
-    BiUndo,
     BsSquare,
     BsTriangle,
     GiMagnifyingGlass,
     GiShuttlecock,
-    GrClear,
     IoEllipseOutline,
     RiSubtractLine,
     RiFootprintFill,
     BsPlusCircle,
+    BiPlayCircle,
+    BiPauseCircle,
+    BiStopCircle,
+    BsPlayFill,
+    BsPauseFill,
+    BiUndo,
+    GrClearOption
 } from "react-icons/all";
 
 // Layout Function has Layout of Court as well as controls
@@ -78,6 +83,9 @@ export default function Layout() {
 
     // Variable to store current selected object
     const [currentObject, setCurrentObject] = useState(null);
+
+    // Variable to Keep Track of added Objects
+    const canvasObjects = useRef([])
 
     /**
      * Simulation Related State Variables
@@ -118,12 +126,29 @@ export default function Layout() {
         footworks: [],
     });
 
+    // Variable to keep track of show all rallies
+    const showAllRallies = useRef(false)
+
+    // Varaible to keep track of show all footworks
+    const showAllFootworks = useRef(false)
+
     // Variable to store animation object
     // const [animationObject, setAnimationObject] = useState(null);
 
     // Variable for Different Colors for Rally and Footwork
-    const rallyColors = ['#a83232', '#e3e017', '#ffffff', '#d400e3', '#7de5ff']
-    const footworkColors = ['#424a42', '#abb068', '#20687a', '#20687a', '#850052']
+    const rallyColors = [
+        '#ac92eb',
+        '#4fc1e8',
+        '#a0d568',
+        '#ffce54',
+        '#ed5564']
+    const footworkColors = [
+        '#f83e7f',
+        '#ff7602',
+        '#fefa27',
+        '#509916',
+        '#00b2f0'
+    ]
 
     /**
      * Common State Variables
@@ -238,6 +263,18 @@ export default function Layout() {
         canvas.off("mouse:up");
     };
 
+
+    /**
+     * Receives object as a parameter
+     * Adds object to canvas
+     * @updates {canvasObjects, canvas}
+     * @returns None
+     */
+
+    const addObjectToArray = (object) => {
+        canvasObjects.current.push(object)
+    }
+
     /**
      * Draws Circle on Canvas with moving animation
      * As per pointer on screen
@@ -254,11 +291,11 @@ export default function Layout() {
         setMode("Circle");
         let circle;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             isDown = true;
@@ -274,6 +311,7 @@ export default function Layout() {
                 strokeWidth: 3,
             });
             canvas.add(circle);
+            addObjectToArray(circle);
 
             circle.set({
                 left: startX,
@@ -294,11 +332,11 @@ export default function Layout() {
         canvas.on("mouse:up", () => {
             isDown = false;
             clearMouseListeners();
-            canvas.getObjects().forEach((object) => {
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             return;
@@ -319,11 +357,11 @@ export default function Layout() {
         setMode("Rectangle/Square");
         var rectangle;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             isDown = true;
@@ -341,6 +379,7 @@ export default function Layout() {
                 strokeWidth: 3,
             });
             canvas.add(rectangle);
+            addObjectToArray(rectangle);
         });
 
         canvas.on("mouse:move", (event) => {
@@ -358,12 +397,11 @@ export default function Layout() {
         canvas.on("mouse:up", (event) => {
             isDown = false;
             clearMouseListeners();
-            canvas.getObjects().forEach((object) => {
-                // console.log(object)
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             return;
@@ -385,11 +423,11 @@ export default function Layout() {
         setMode("Ellipse");
         var ellipse;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             isDown = true;
@@ -410,6 +448,7 @@ export default function Layout() {
                 strokeWidth: 3,
             });
             canvas.add(ellipse);
+            addObjectToArray(ellipse);
         });
 
         canvas.on("mouse:move", (event) => {
@@ -427,11 +466,11 @@ export default function Layout() {
         canvas.on("mouse:up", (event) => {
             isDown = false;
             clearMouseListeners();
-            canvas.getObjects().forEach((object) => {
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             return;
@@ -453,11 +492,11 @@ export default function Layout() {
         setMode("Triangle");
         var triangle;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             isDown = true;
@@ -475,6 +514,7 @@ export default function Layout() {
                 strokeWidth: 3,
             });
             canvas.add(triangle);
+            addObjectToArray(triangle);
         });
 
         canvas.on("mouse:move", (event) => {
@@ -492,11 +532,11 @@ export default function Layout() {
         canvas.on("mouse:up", () => {
             isDown = false;
             clearMouseListeners();
-            canvas.getObjects().forEach((object) => {
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             return;
@@ -518,11 +558,11 @@ export default function Layout() {
         setMode("Line");
         var line;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             isDown = true;
@@ -537,6 +577,7 @@ export default function Layout() {
                 strokeWidth: 3,
             });
             canvas.add(line);
+            addObjectToArray(line);
         });
 
         canvas.on("mouse:move", (event) => {
@@ -555,11 +596,11 @@ export default function Layout() {
             isDown = false;
             line.setCoords();
             clearMouseListeners();
-            canvas.getObjects().forEach((object) => {
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             return;
@@ -605,61 +646,36 @@ export default function Layout() {
         setMode("Text");
         var text;
 
-        canvas.getObjects().forEach((object) => {
-            object.set({
-                selectable: false,
-            });
-        });
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false
+            })
+        }
 
         canvas.on("mouse:down", (event) => {
             startX = canvas.getPointer(event.e).x;
             startY = canvas.getPointer(event.e).y;
             text = new fabric.IText("Tap and Type", {
-                fontFamily: "arial black",
+                fontFamily: "Quicksand",
                 left: startX,
                 top: startY,
                 fontSize: 30,
             });
 
             canvas.add(text);
+            addObjectToArray(text);
         });
 
         canvas.on("mouse:up", () => {
-            canvas.getObjects().forEach((object) => {
-                object.set({
-                    selectable: true,
-                });
-            });
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true
+                })
+            }
 
             setMode("none");
             clearMouseListeners();
         });
-    };
-
-    /**
-     * Undo operation on Canvas
-     * Removes the last Object Modification which is added
-     * @returns none
-     * @updates {canvas}
-     */
-
-    const undoHistory = () => {
-        clearMouseListeners();
-        canvas.isDrawingMode = false;
-        canvas.undo();
-    };
-
-    /**
-     * Undo operation on Canvas
-     * Adds the last Object Modification which is removed
-     * @returns none
-     * @updates {canvas}
-     */
-
-    const redoHistory = () => {
-        clearMouseListeners();
-        canvas.isDrawingMode = false;
-        canvas.redo();
     };
 
     /**
@@ -692,6 +708,8 @@ export default function Layout() {
             canvas.remove(objects[i]);
         }
         canvas.renderAll();
+        // Remove everything from canvasObjects Array
+        canvasObjects.current = []
     };
 
     /**
@@ -748,23 +766,13 @@ export default function Layout() {
 
     const canvasControlMenu = [
         {
-            name: "Undo",
-            icon: <BiUndo />,
-            func: undoHistory,
-        },
-        {
-            name: "Redo",
-            icon: <BiRedo />,
-            func: redoHistory,
-        },
-        {
             name: "Delete",
             icon: <BiTrash />,
             func: deleteItem,
         },
         {
             name: "Clear History",
-            icon: <GrClear />,
+            icon: <GrClearOption />,
             func: () => {
                 if (
                     window.confirm("Do you want clear canvas? It cannot be recovered.")
@@ -919,30 +927,62 @@ export default function Layout() {
     };
 
     /**
+     * Remove all objects from all other rallies
+     * @updates None
+     * @return None
+     */
+
+    const clearAllRallyObjects = () => {
+        for (let i = 0; i < arrayOfRallies.current.rallies.length; i++) {
+            for (let j = 0; j < arrayOfRallies.current.rallies[i].objectHistory.length; j++) {
+                canvas.remove(arrayOfRallies.current.rallies[i].objectHistory[j])
+            }
+        }
+    }
+
+    /**
+     * Draw Rally Objects on screen as per demand
+     * If only current one is to be displayed
+     * @param showCurrentOnly is set to true
+     * Else is set to false
+     */
+
+    const drawRallyObjectsOnCanvas = (showCurrentOnly) => {
+        if (arrayOfRallies.current.rallies.length === 0) {
+            return
+        }
+        if (showCurrentOnly) {
+            for (let i = 0;
+                i < arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.length;
+                i++) {
+                canvas.add(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory[i])
+            }
+        } else {
+            for (let i = 0; i < arrayOfRallies.current.rallies.length; i++) {
+                for (let j = 0; j < arrayOfRallies.current.rallies[i].objectHistory.length; j++) {
+                    canvas.add(arrayOfRallies.current.rallies[i].objectHistory[j])
+                }
+            }
+        }
+    }
+
+
+    /**
      * Creates Rally where user can select any point on court
      * after which he has to select a point on Vertically opposite side
      * of current point if Canvas was divided into 2 vertical zones
      * @updates {arrayOfRallies}
-     * @returns none
-     * @todo Add support for multiple rallies to be used
-     *       which will have different colors for lines
-     *       An array of distinct colors should be used to give different colors for each new rally
-     *       There will be no limit to create a new rally, but there will be a limit on no. of colors
-     *       we are using for the rally, we will use 5 colors, so they can make 5 different rallies
-     *
-     * Problem : (Resolved) => Solution was to change how values were pushed in State Variable
-     * Rally Construction works fine when we constantly keep on updating and moving the rally
-     * Problem arises when any other component is used with this component, ie. adding some Normal
-     * Components like Circle, Square, Triangle, etc.
-     *
-     * When those components are used and again this method is called, only the length of the object
-     * is recovered from previous state, this means that even if a new rally is created, only the new points are
-     * recorded in the rally. It prevents user from having full data. It does not work with State Variable, nor a
-     * simple array, this needs to be resolved with high priority
+     * @returns None
      */
 
     const constructRally = () => {
 
+        clearAllRallyObjects()
+        if (showAllRallies.current) {
+            drawRallyObjectsOnCanvas(false)
+        } else {
+            drawRallyObjectsOnCanvas(true)
+        }
         clearMouseListeners();
         setMode("Rally");
         canvas.on("mouse:down", (event) => {
@@ -957,7 +997,7 @@ export default function Layout() {
             // console.log(arrayOfRallies.current.currentActiveIndex)
 
             // If array is empty, then do not check where Point has been placed
-            console.log("This matters", arrayOfRallies.current.currentActiveIndex)
+            // console.log("This matters", arrayOfRallies.current.currentActiveIndex)
 
             if (arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length === 0) {
                 arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.push({
@@ -982,7 +1022,7 @@ export default function Layout() {
                 let text = new fabric.IText(
                     arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length + "",
                     {
-                        fontFamily: "arial black",
+                        fontFamily: "Quicksand",
                         stroke: rallyColors[arrayOfRallies.current.currentActiveIndex % rallyColors.length],
                         left: currentX + 12,
                         top: currentY,
@@ -994,6 +1034,9 @@ export default function Layout() {
 
                 canvas.add(text);
                 canvas.add(circle);
+
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(text)
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(circle)
 
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
             }
@@ -1033,7 +1076,7 @@ export default function Layout() {
                     let text = new fabric.IText(
                         arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length + "",
                         {
-                            fontFamily: "arial black",
+                            fontFamily: "Quicksand",
                             stroke: rallyColors[arrayOfRallies.current.currentActiveIndex % rallyColors.length],
                             left: currentX + 12,
                             top: currentY,
@@ -1069,11 +1112,55 @@ export default function Layout() {
                     canvas.add(line);
                     canvas.add(circle);
 
-                    console.log(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots)
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(text)
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(line)
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(circle)
                 }
             }
         });
     };
+
+    /**
+     * Remove all objects from all other rallies
+     * Keep only plotted points of current active index
+     * @updates None
+     * @return None
+     */
+
+    const clearAllFootworkObjects = () => {
+        for (let i = 0; i < arrayOfFootwork.current.footworks.length; i++) {
+            for (let j = 0; j < arrayOfFootwork.current.footworks[i].objectHistory.length; j++) {
+                canvas.remove(arrayOfFootwork.current.footworks[i].objectHistory[j])
+            }
+        }
+    }
+
+    /**
+     * Draw Footwork Objects on screen as per demand
+     * If only current one is to be displayed
+     * @param showCurrentOnly is set to true
+     * Else is set to false
+     */
+
+     const drawFootworkObjectsOnCanvas = (showCurrentOnly) => {
+        if (arrayOfFootwork.current.footworks.length === 0) {
+            return
+        }
+        if (showCurrentOnly) {
+            for (let i = 0;
+                i < arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.length;
+                i++) {
+                canvas.add(arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory[i])
+            }
+        } else {
+            for (let i = 0; i < arrayOfFootwork.current.footworks.length; i++) {
+                for (let j = 0; j < arrayOfFootwork.current.footworks[i].objectHistory.length; j++) {
+                    canvas.add(arrayOfFootwork.current.footworks[i].objectHistory[j])
+                }
+            }
+        }
+    }
+
 
     /**
      * Creates Footwork Movements, like a Rally
@@ -1085,6 +1172,13 @@ export default function Layout() {
 
     const constructFootwork = () => {
 
+        clearAllFootworkObjects()
+        if (showAllFootworks.current) {
+            drawFootworkObjectsOnCanvas(false)
+        }
+        else {
+            drawFootworkObjectsOnCanvas(true)
+        }
         clearMouseListeners();
         setMode("Footwork");
         canvas.on("mouse:down", (event) => {
@@ -1097,7 +1191,6 @@ export default function Layout() {
             let currentY = canvas.getPointer(event.e).y;
 
             // If array is empty, then do not check where Point has been placed
-            console.log("This matters", arrayOfFootwork.current.currentActiveIndex)
             if (arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.length === 0) {
                 arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.push({
                     x: currentX,
@@ -1121,7 +1214,7 @@ export default function Layout() {
                 let text = new fabric.IText(
                     arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.length + "",
                     {
-                        fontFamily: "arial black",
+                        fontFamily: "Quicksand",
                         stroke: footworkColors[arrayOfFootwork.current.currentActiveIndex % footworkColors.length],
                         left: currentX + 12,
                         top: currentY,
@@ -1133,6 +1226,9 @@ export default function Layout() {
 
                 canvas.add(text);
                 canvas.add(rect);
+
+                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(text)
+                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(rect)
 
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
             }
@@ -1167,7 +1263,7 @@ export default function Layout() {
                     let text = new fabric.IText(
                         arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.length + "",
                         {
-                            fontFamily: "arial black",
+                            fontFamily: "Quicksand",
                             stroke: footworkColors[arrayOfFootwork.current.currentActiveIndex % footworkColors.length],
                             left: currentX + 12,
                             top: currentY,
@@ -1203,7 +1299,10 @@ export default function Layout() {
                     canvas.add(line);
                     canvas.add(rect);
 
-                    // console.log(arrayOfFootwork.current.currentActiveIndex)
+                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(text)
+                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(line)
+                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(rect)
+
                 }
             }
         });
@@ -1268,43 +1367,91 @@ export default function Layout() {
     ];
 
     /**
-     * Menu for Controlling Rally
+     * Menu for showing Simulation Modes
      */
 
-    const rallyMenu = [
+    const simulationOptions = [
         {
             name: "Rally",
             icon: <GiShuttlecock />,
             func: constructRally,
         },
-        // {
-        //     name: "Set Rally",
-        //     icon: <BsPlay />,
-        //     func: setAndPlayAnimationObject,
-        // },
-        {
-            name: "Add Rally",
-            icon: <BsPlusCircle />,
-            func: onOpen,
-        },
-    ];
-
-    /**
-     * Menu for Controlling Footwork
-     */
-
-    const footworkMenu = [
         {
             name: "Footwork",
             icon: <RiFootprintFill />,
             func: constructFootwork,
         },
+    ];
+
+    /**
+     * Menu for showing operations that can be done on modes
+     */
+
+    const simulationOperations = [
+
         {
-            name: "Add Rally",
+            name: "New",
             icon: <BsPlusCircle />,
-            func: onOpen,
+            text: "Create",
+            colorScheme: "blue",
+            func: () => {
+                if (mode === "Rally" || mode === "Footwork") {
+                    onOpen()
+                } else {
+                    window.alert("Choose 1 of simulation operations")
+                }
+            },
+        },
+        {
+            name: "Run",
+            icon: <BiPlayCircle />,
+            colorScheme: "green",
+            text: "Run",
+            func: () => { }
+        },
+        {
+            name: "Pause",
+            icon: <BiPauseCircle />,
+            colorScheme: "yellow",
+            text: "Pause",
+            func: () => { }
+        },
+        {
+            name: "Stop",
+            icon: <BiStopCircle />,
+            colorScheme: "red",
+            text: "Stop",
+            func: () => { }
+        },
+        {
+            name: "Reset",
+            icon: <BiUndo />,
+            colorScheme: "cyan",
+            text: "Reset",
+            func: () => { }
         },
     ];
+
+    /**
+     * Advanced operation modes
+     */
+
+    const advancedSimulationOperations = [
+        {
+            name: "Run All",
+            icon: <BsPlayFill />,
+            colorScheme: "teal",
+            text: "Run All",
+            func: () => { }
+        },
+        {
+            name: "Pause All",
+            icon: <BsPauseFill />,
+            colorScheme: "whatsapp",
+            text: "Pause All",
+            func: () => { }
+        }
+    ]
 
     /**
      * Mode of Color as per colorModeValue
@@ -1327,14 +1474,15 @@ export default function Layout() {
         },
         {
             name: "Border Width",
-            prop: "stroke"
-        }
+            prop: "strokeWidth"
+        },
     ];
 
     /** Create a new rally in the state variable arrayOfRallies
      * @updates {currentActiveIndex, arrayOfRallies}
      * @returns none
-     * @problems previous state is reflected and does not ppend the current user inputed rally. Cannot find `shots` attribute in the newly created rally
+     * @problems previous state is reflected and does not ppend the current user inputed rally. 
+     * Cannot find `shots` attribute in the newly created rally @resolved
      */
 
     function addRally() {
@@ -1348,7 +1496,8 @@ export default function Layout() {
         arrayOfRallies.current.rallies.push({
             name: rallyOrFootworkName.current.value,
             shots: [],
-            lastY: -1
+            lastY: -1,
+            objectHistory: []
         })
 
         arrayOfRallies.current.currentActiveIndex = x
@@ -1373,7 +1522,8 @@ export default function Layout() {
         arrayOfFootwork.current.footworks.push({
             name: rallyOrFootworkName.current.value,
             movements: [],
-            lastY: -1
+            lastY: -1,
+            objectHistory: []
         })
         arrayOfFootwork.current.currentActiveIndex = x
         forceUpdate()
@@ -1387,7 +1537,6 @@ export default function Layout() {
      */
 
     const setRightMenu = () => {
-        console.log("SET MENU CALLED")
         let ralliesOrFootwork = null;
         let l = null;
         let colors = null;
@@ -1411,30 +1560,54 @@ export default function Layout() {
         }
         console.log(l)
         return (
-            <chakra.div>
+            <chakra.div w={'100%'} m={1}>
                 <Center w="100%">
-                    <Text fontSize={"xl"} mb={"1vh"}>
-                        {ralliesOrFootwork}
-                    </Text>
+                    <VStack w='100%'>
+                        <Text fontSize={"2xl"}>
+                            {ralliesOrFootwork}
+                        </Text>
+                        <Flex as='text' fontSize={"2xl"} mb={"1vh"}>
+
+                            {
+                                mode === "Rally" ?
+                                    <Checkbox isChecked={showAllRallies.current}
+                                        onChange={(e) => {
+                                            showAllRallies.current = e.target.checked
+                                            forceUpdate()
+                                            constructRally()
+                                        }}>
+                                        Show All Rallies on Court
+                                    </Checkbox>
+                                    : null
+                            }
+                        </Flex>
+                        <Flex as='text' fontSize={"2xl"} mb={"1vh"}>
+                            {
+                                mode === "Footwork" ?
+                                    <Checkbox isChecked={showAllFootworks.current}
+                                        onChange={(e) => {
+                                            showAllFootworks.current = e.target.checked
+                                            forceUpdate()
+                                            console.log("Called Footwork Now")
+                                            constructFootwork()
+                                        }}>
+                                        Show All Footworks on Court
+                                    </Checkbox>
+                                    : null
+                            }
+                        </Flex>
+
+                    </VStack>
                 </Center>
 
-                <chakra.div
-                    overflowY="auto"
-                >
-                    {"LEN : " + arrayOfRallies.current.rallies.length}
-                    {" CURR : " + arrayOfRallies.current.currentActiveIndex}
-                    <br />
-                    {"LEN : " + arrayOfFootwork.current.footworks.length}
-                    {" CURR : " + arrayOfFootwork.current.currentActiveIndex}
-                    <OrderedList justifyContent="center" alignItems="left" spacing="5">
+                <chakra.div overflowY="auto">
+                    <OrderedList justifyContent="center" alignItems="left" spacing="1">
                         {l.map((i, index) => (
                             <ListItem key={index}>
                                 <SimpleGrid columns="1" mx="4">
-                                    {/* Cheap Fix */}
-                                    <Button variant='ghost'
-                                        border='solid'
-                                        bg={colors[index % colors.length]}
-                                        onClick={async (e) => {
+                                    <Input
+                                        w={'100%'}
+                                        onClick={() => {
                                             if (mode === "Rally") {
                                                 arrayOfRallies.current.currentActiveIndex = index
                                                 clearMouseListeners()
@@ -1445,7 +1618,27 @@ export default function Layout() {
                                                 constructFootwork()
                                             }
                                         }
-                                        }>{i.name}</Button>
+                                        }
+                                        _hover={() => { }}
+                                        border={'solid'}
+                                        focusBorderColor={colors[index % colors.length]}
+                                        borderColor={colors[index % colors.length]}
+                                        defaultValue={i.name}
+                                        onChange={(e) => {
+                                            if (e.target.value === "") {
+                                                e.target.placeholder = "Enter some value"
+                                                forceUpdate()
+                                                return
+                                            }
+                                            if (mode === "Rally") {
+                                                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].name = e.target.value
+                                            } else if (mode === "Footwork") {
+                                                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].name = e.target.value
+                                            }
+                                            forceUpdate()
+                                        }}
+                                    />
+
                                 </SimpleGrid>
                             </ListItem>
                         ))}
@@ -1461,7 +1654,16 @@ export default function Layout() {
                 <Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
                     <VStack align={'flex-start'}>
                         <Table variant="simple" maxH={"10vh"} overflowY="auto" size="xsm">
-                            <Thead>{"Object Props"}</Thead>
+                            <Thead>
+                                <Tr>
+                                    <Td>
+                                        {"Object"}
+                                    </Td>
+                                    <Td>
+                                        {"Properties"}
+                                    </Td>
+                                </Tr>
+                            </Thead>
                             <Tbody>
                                 {leftPanel.map((obj, index) => {
                                     return (
@@ -1471,8 +1673,28 @@ export default function Layout() {
                                             </Td>
                                             <Td>
                                                 <Input
-                                                    placeholder={currentObject == null ? "None" : currentObject.get(obj.prop)}
-                                                    onChange={null}
+                                                    disabled={currentObject == null ? true : false}
+                                                    defaultValue={currentObject == null ? "" : currentObject.get(obj.prop)}
+                                                    onChange={
+                                                        (e) => {
+                                                            if (currentObject !== null) {
+                                                                console.log(obj.prop, e.target.value)
+                                                                let property = obj.prop
+                                                                let val = e.target.value
+                                                                if (val === "") {
+                                                                    return
+                                                                }
+                                                                if (property === "strokeWidth") {
+                                                                    val = parseInt(val)
+                                                                }
+                                                                currentObject.set(property, val)
+                                                                currentObject.set({
+                                                                    selectable: true
+                                                                })
+                                                                canvas.renderAll()
+                                                            }
+                                                        }
+                                                    }
                                                 />
                                             </Td>
                                         </Tr>
@@ -1499,15 +1721,25 @@ export default function Layout() {
                                         numColumns: parseInt(e.target.value)
                                     }))
                                 }} />
-                            <Button colorScheme="blue" mt={3}
+                            <Button colorScheme="blue" mt={3} w={'100%'}
                                 onClick={showGrids}
                             >Set Grid Lines</Button>
                         </Box>
-                        <Button colorScheme="red" onClick={loadCanvas}>
+                        <Button w={'100%'} colorScheme="red" onClick={() => {
+                            // Get all Objects and Remove them one by one
+                            let objects = canvas.getObjects();
+                            for (var i = 0; i < objects.length; i++) {
+                                canvas.remove(objects[i]);
+                            }
+                            canvas.renderAll();
+
+                            // Remove everything from CanvasObjects array also
+                            canvasObjects.current = []
+                        }}>
                             Reload Canvas
                         </Button>
-                        <Button onClick={toggleColorMode}>
-                            Toggle {colorMode === "light" ? "Dark" : "Light"}
+                        <Button w={'100%'} variant='outline' colorScheme='black' onClick={toggleColorMode}>
+                            Toggle to {colorMode === "light" ? "Dark" : "Light"} mode
                         </Button>
                     </VStack>
                 </Box>
@@ -1517,7 +1749,7 @@ export default function Layout() {
                         <Text fontSize={"2xl"}>Objects</Text>
                     </Center>
                     <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"40vh"} overflowY="auto">
+                        <SimpleGrid w={"8vw"} columns={2} maxH={"40vh"} overflowY="auto" flexGrow={1}>
                             {objectsMenu.map((item) => {
                                 return (
                                     <Flex scroll={"true"} key={item.name}>
@@ -1547,7 +1779,7 @@ export default function Layout() {
                         <Text fontSize={"2xl"}>Object Controls</Text>
                     </Center>
                     <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"20vh"} overflowY="auto">
+                        <SimpleGrid w={"8vw"} columns={2} maxH={"20vh"} overflowY="auto" flexGrow={1}>
                             {canvasControlMenu.map((item) => {
                                 return (
                                     <Flex scroll="true" key={item.name}>
@@ -1587,7 +1819,7 @@ export default function Layout() {
                         <Text fontSize={"2xl"}>Reference Points</Text>
                     </Box>
                     <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"15vh"} overflowY="auto">
+                        <SimpleGrid w={"8vw"} columns={2} maxH={"15vh"} overflowY="auto" flexGrow={1}>
                             {simulationRefs.map((item) => {
                                 return (
                                     <Flex scroll="true" key={item.name}>
@@ -1614,11 +1846,11 @@ export default function Layout() {
                         </SimpleGrid>
                     </Box>
                     <Center w="100%">
-                        <Text fontSize={"2xl"}>Rally Control</Text>
+                        <Text fontSize={"xl"}>Simulations</Text>
                     </Center>
-                    <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
-                            {rallyMenu.map((item) => {
+                    <Box display={["none", "flex"]} alignContent="center">
+                        <SimpleGrid w={"8vw"} flexGrow={1} columns={2} overflowY="auto">
+                            {simulationOptions.map((item) => {
                                 return (
                                     <Flex scroll="true" key={item.name}>
                                         <Tooltip label={item.name}>
@@ -1644,34 +1876,52 @@ export default function Layout() {
                         </SimpleGrid>
                     </Box>
                     <Center w="100%">
-                        <Text fontSize={"2xl"}>Footwork Control</Text>
+                        <Text fontSize={"xl"}>Simulation Controls</Text>
                     </Center>
                     <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} h={"15vh"} overflowY="auto">
-                            {footworkMenu.map((item) => {
-                                return (
-                                    <Flex scroll="true" key={item.name}>
-                                        <Tooltip label={item.name}>
-                                            <Button
-                                                px={"0.2vw"}
-                                                py={"3vh"}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Flex>
-                                );
-                            })}
-                        </SimpleGrid>
+                        <VStack flexGrow={1}>
+                            <SimpleGrid w={"100%"} columns={2} maxH={"30vh"} overflowY="auto">
+                                {simulationOperations.map((item) => {
+                                    return (
+                                        <Flex key={item.name}>
+                                            <Tooltip label={item.name}>
+                                                <Button
+                                                    m={1}
+                                                    py={"3vh"}
+                                                    colorScheme={item.colorScheme}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    );
+                                })}
+                            </SimpleGrid>
+                            <SimpleGrid w={"100%"} columns={1} maxH={"30vh"} overflowY="auto">
+                                {advancedSimulationOperations.map((item) => {
+                                    return (
+                                        <Flex key={item.name} 
+                                         display={showAllRallies.current || showAllFootworks.current ? "flex" : "none"}>
+                                            <Tooltip label={item.name}>
+                                                <Button
+                                                    m={1}
+                                                    py={"2vh"}
+                                                    colorScheme={item.colorScheme}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}<Text ml={2}>{item.text}</Text>
+                                                </Button>
+                                            </Tooltip>
+                                        </Flex>
+                                    );
+                                })}
+                            </SimpleGrid>
+                        </VStack>
                     </Box>
                 </Box>
                 <Box display={["none", "flex"]} w={"19vw"} mr={"2vw"}>
@@ -1680,7 +1930,8 @@ export default function Layout() {
             </Stack>
 
             {/* Modal to take the user input for naming the rally or footwork */}
-            <Modal isOpen={isOpen} onClose={onClose}>
+            <Modal isOpen={isOpen && (mode === "Rally" || mode === "Footwork")}
+                onClose={onClose}>
                 <ModalOverlay />
                 <ModalContent>
                     <ModalHeader>
