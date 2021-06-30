@@ -13,9 +13,12 @@
 
 ### Running Todos
 - Undo, Redo and Clear History operations <Implement custom ops>
-- Maintain my state object arrays for canvas
 - Animation add and remove
 - Undo function for Rallies and Footworks to be implemented
+
+## Changes on date 27 June 2021
+1. Maintain my state object arrays for canvas done
+2. Delete Operation is yet to be implemented, problems with useRef and current array rendering
 
 ## Changes on date 23 June 2021
 1. Left Panel added (@Vedant-Gokale) => 60% credit

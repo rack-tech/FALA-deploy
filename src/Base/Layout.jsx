@@ -1,5 +1,6 @@
 import "./Layout.css";
 import Court from "./baddy_crt.jpg";
+import Shuttle from './badminton_shuttle.png'
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
     Box,
@@ -30,10 +31,13 @@ import {
     Input,
     ModalFooter,
     ListItem,
-    Checkbox
+    Checkbox,
+    Grid,
+    GridItem
 } from "@chakra-ui/react";
+
 import { fabric } from "fabric";
-import "fabric-history";
+
 import {
     BiCircle,
     BiEdit,
@@ -55,12 +59,16 @@ import {
     BsPlayFill,
     BsPauseFill,
     BiUndo,
-    GrClearOption
+    GrClearOption,
+    MdDelete
 } from "react-icons/all";
+
+import { rallyColors, footworkColors } from "../Vars/Colors";
 
 // Layout Function has Layout of Court as well as controls
 
 export default function Layout() {
+
     // Color Mode State Variable
     const { colorMode, toggleColorMode } = useColorMode();
 
@@ -86,6 +94,25 @@ export default function Layout() {
 
     // Variable to Keep Track of added Objects
     const canvasObjects = useRef([])
+
+    // Create a Mode Variable to Highlight which mode is active
+    const [mode, setMode] = useState("Pointer");
+
+    /**
+     * Variables for Drawing Objects
+     */
+
+    let isDown = false;
+    let startX = 0;
+    let startY = 0;
+
+    /**
+     * State Variable to Force Re render on screen (of right menu)
+     * @returns None
+     * @updates None
+     */
+
+    const [, forceUpdate] = useReducer((x) => x + 1, 0)
 
     /**
      * Simulation Related State Variables
@@ -126,44 +153,17 @@ export default function Layout() {
         footworks: [],
     });
 
+    // Variable to keep reference of shuttle animation object
+    const shuttleAnimationObject = useRef()
+
+    // Variable to keep reference of footwork animation object
+    const [footworkAnimationObject, setFootworkAnimationObject] = useState(null)
+
     // Variable to keep track of show all rallies
     const showAllRallies = useRef(false)
 
     // Varaible to keep track of show all footworks
     const showAllFootworks = useRef(false)
-
-    // Variable to store animation object
-    // const [animationObject, setAnimationObject] = useState(null);
-
-    // Variable for Different Colors for Rally and Footwork
-    const rallyColors = [
-        '#ac92eb',
-        '#4fc1e8',
-        '#a0d568',
-        '#ffce54',
-        '#ed5564']
-    const footworkColors = [
-        '#f83e7f',
-        '#ff7602',
-        '#fefa27',
-        '#509916',
-        '#00b2f0'
-    ]
-
-    /**
-     * Common State Variables
-     */
-
-    // Create a Mode Variable to Highlight which mode is active
-    const [mode, setMode] = useState("Pointer");
-
-    /**
-     * Variables for Drawing Objects
-     */
-
-    let isDown = false;
-    let startX = 0;
-    let startY = 0;
 
     /**
      * Initialize Canvas every time reload happens
@@ -214,14 +214,6 @@ export default function Layout() {
         loadCanvas();
         // eslint-disable-next-line
     }, [boxDiv.current]);
-
-    /**
-     * Function to Force Re render on screen (of right menu)
-     * @returns None
-     * @updates None
-     */
-
-    const [, forceUpdate] = useReducer((x) => x + 1, 0)
 
     /**
      * Add Object Select Listener
@@ -632,8 +624,8 @@ export default function Layout() {
     };
 
     /**
-     * Adds a text box to Canvas
-     * Uses current X and Y values to place the text box
+     * Adds a p box to Canvas
+     * Uses current X and Y values to place the p box
      * @returns none
      * @updates {canvas, mode}
      */
@@ -644,7 +636,7 @@ export default function Layout() {
         canvas.isDrawingMode = false;
         // canvas.__eventListeners = {}
         setMode("Text");
-        var text;
+        var p;
 
         for (let i = 0; i < canvasObjects.current.length; i++) {
             canvasObjects.current[i].set({
@@ -655,15 +647,15 @@ export default function Layout() {
         canvas.on("mouse:down", (event) => {
             startX = canvas.getPointer(event.e).x;
             startY = canvas.getPointer(event.e).y;
-            text = new fabric.IText("Tap and Type", {
+            p = new fabric.IText("Tap and Type", {
                 fontFamily: "Quicksand",
                 left: startX,
                 top: startY,
                 fontSize: 30,
             });
 
-            canvas.add(text);
-            addObjectToArray(text);
+            canvas.add(p);
+            addObjectToArray(p);
         });
 
         canvas.on("mouse:up", () => {
@@ -1019,7 +1011,7 @@ export default function Layout() {
                     strokeWidth: 1,
                 });
 
-                let text = new fabric.IText(
+                let p = new fabric.IText(
                     arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length + "",
                     {
                         fontFamily: "Quicksand",
@@ -1032,10 +1024,10 @@ export default function Layout() {
                     }
                 );
 
-                canvas.add(text);
+                canvas.add(p);
                 canvas.add(circle);
 
-                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(text)
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(p)
                 arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(circle)
 
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
@@ -1073,7 +1065,7 @@ export default function Layout() {
                         strokeWidth: 1,
                     });
 
-                    let text = new fabric.IText(
+                    let p = new fabric.IText(
                         arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length + "",
                         {
                             fontFamily: "Quicksand",
@@ -1108,11 +1100,11 @@ export default function Layout() {
                         }
                     );
 
-                    canvas.add(text);
+                    canvas.add(p);
                     canvas.add(line);
                     canvas.add(circle);
 
-                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(text)
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(p)
                     arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(line)
                     arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.push(circle)
                 }
@@ -1142,7 +1134,7 @@ export default function Layout() {
      * Else is set to false
      */
 
-     const drawFootworkObjectsOnCanvas = (showCurrentOnly) => {
+    const drawFootworkObjectsOnCanvas = (showCurrentOnly) => {
         if (arrayOfFootwork.current.footworks.length === 0) {
             return
         }
@@ -1211,7 +1203,7 @@ export default function Layout() {
                     strokeWidth: 1,
                 });
 
-                let text = new fabric.IText(
+                let p = new fabric.IText(
                     arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.length + "",
                     {
                         fontFamily: "Quicksand",
@@ -1224,10 +1216,10 @@ export default function Layout() {
                     }
                 );
 
-                canvas.add(text);
+                canvas.add(p);
                 canvas.add(rect);
 
-                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(text)
+                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(p)
                 arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(rect)
 
                 // console.log("Last", rallyLastY, " Last Func : ", checkHalfVertical(currentY))
@@ -1260,7 +1252,7 @@ export default function Layout() {
                         strokeWidth: 1,
                     });
 
-                    let text = new fabric.IText(
+                    let p = new fabric.IText(
                         arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].movements.length + "",
                         {
                             fontFamily: "Quicksand",
@@ -1295,11 +1287,11 @@ export default function Layout() {
                         }
                     );
 
-                    canvas.add(text);
+                    canvas.add(p);
                     canvas.add(line);
                     canvas.add(rect);
 
-                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(text)
+                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(p)
                     arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(line)
                     arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.push(rect)
 
@@ -1308,45 +1300,300 @@ export default function Layout() {
         });
     };
 
-    /**
-     * Create Animation for Footwork as well as Rally
-     * Animation can be paused using a button
-     * Animation can be stopped using another button
+    /** Create a new rally in the state variable arrayOfRallies
+     * @updates {currentActiveIndex, arrayOfRallies}
      * @returns none
-     * @updates {animationObject}
+     * @problems previous state is reflected and does not ppend the current user inputed rally. 
+     * Cannot find `shots` attribute in the newly created rally @resolved
      */
 
-    // const setAndPlayAnimationObject = () => {
-    //     // If mode = Rally, then get currentActiveIndex of Rally
-    //     // Else If mode = Footwork, then get currentActiveIndex of Footwork
-    //     // Then update path variable that will be used to animate
-    //     // Start Animation
-    //     if (mode === "Rally") {
-    //         // Get currentActiveIndex's shots array
-    //         let pathShots = "";
-    //         let shots =
-    //             arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots;
-    //         console.log(shots);
-    //         if (shots.length > 0) {
-    //             pathShots += "M " + shots[0].x + " " + shots[0].y;
-    //             for (var i = 1; i < shots.length; i++) {
-    //                 pathShots += " L " + shots[i].x + " " + shots[i].y;
-    //             }
-    //         }
+    function addRally() {
 
-    //         if (shots.length > 0) {
-    //             let path = new fabric.Path(pathShots, {
-    //                 stroke: "black",
-    //                 fill: "transparent",
-    //                 top: shots[0].y,
-    //                 left: shots[0].x,
-    //             });
-    //             canvas.add(path);
-    //             setAnimationObject(path);
-    //             console.log(animationObject);
-    //         }
-    //     }
-    // };
+        let x = arrayOfRallies.current.rallies.length
+        if (x === undefined) {
+            x = 0
+        }
+        console.log("ARLen" + x)
+
+        arrayOfRallies.current.rallies.push({
+            name: rallyOrFootworkName.current.value,
+            shots: [],
+            lastY: -1,
+            objectHistory: [],
+            lastActiveAnimation: -1,
+            lastActiveAnimationRef: null
+        })
+
+        arrayOfRallies.current.currentActiveIndex = x
+        forceUpdate()
+        constructRally();
+    }
+
+    /**
+     * Create a new footwork in the state variable arrayOfFootwork.currents
+     * @updates {currentActiveIndexFootwork, numFootworks, arrayOfFootwork.currents}
+     * @returns none
+     * @problems previous state is reflected and does not ppend the current user inputed footwork. Cannot find `movements` attribute in the newly created footwork
+     */
+    function addFootwork() {
+
+        let x = arrayOfFootwork.current.footworks.length
+        if (x === undefined) {
+            x = 0
+        }
+        console.log("FOLen" + x)
+
+        arrayOfFootwork.current.footworks.push({
+            name: rallyOrFootworkName.current.value,
+            movements: [],
+            lastY: -1,
+            objectHistory: [],
+            lastActiveAnimation: -1,
+            lastActiveAnimationRef: null
+        })
+        arrayOfFootwork.current.currentActiveIndex = x
+        forceUpdate()
+        constructFootwork();
+    }
+
+    /**
+     * Set Animation Object
+     * Get current index of rally or footwork
+     * set current animation index as 0
+     * start 1st animation
+     * Animation : Line/Arc from point 1 to point 2
+     * Duration can be modified by user
+     * Need to see what to do with pause operation
+     * @returns None
+     * @updates {arrayOfFootwork, arrayOfRallies}
+     */
+
+    const setShuttleAnimationObject = async () => {
+
+        fabric.Image.fromURL(Shuttle, (img) => {
+            img.scaleToWidth(dims.boxW / 20)
+            shuttleAnimationObject.current = img
+            console.log("Img : ", shuttleAnimationObject.current)
+        })
+        setTimeout(function checker() {
+            if (shuttleAnimationObject.current !== null && shuttleAnimationObject.current !== undefined) {
+                startAnimation()
+            } else {
+                checker()
+            }
+        }, 100)
+    }
+
+    /**
+     * Plays Shuttle Animation
+     * Listens events related to it
+     * @returns none
+     */
+
+    const startAnimation = () => {
+        if (shuttleAnimationObject.current === null || shuttleAnimationObject.current === undefined) {
+            console.log("NULL VAL FOUND")
+            return
+        }
+        console.log("IN ANIMATION")
+        if (mode === "Rally" && arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].lastActiveAnimation === -1 &&
+            arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length > 0) {
+            // We have to start from beginning
+
+            // Set Shuttle to ith place going to i + 1th place
+            for (let i = 0;
+                i < arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length - 1; i++) {
+
+                let currY = checkHalfVertical(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y)
+                let left, top;
+                if (currY === 1) {
+                    left = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x -
+                        shuttleAnimationObject.current.getScaledWidth() / 2
+                    top = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y -
+                        shuttleAnimationObject.current.getScaledHeight() / 2
+                } else {
+                    left = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x +
+                        shuttleAnimationObject.current.getScaledWidth() / 2
+                    top = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y +
+                        shuttleAnimationObject.current.getScaledHeight() / 2
+                }
+                let angle = Math.atan2(
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y -
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].y,
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x -
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].x)
+                angle = (angle * 180) / Math.PI + 90
+
+                shuttleAnimationObject.current.set({
+                    left: left,
+                    top: top,
+                    angle: angle
+                })
+                canvas.add(shuttleAnimationObject.current).renderAll()
+
+                console.log(canvas.getObjects())
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.lastActiveAnimation = i
+                shuttleAnimationObject.current.animate({
+                    'left': arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].x,
+                    'top': arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].y,
+                },
+                    {
+                        onStart: console.log("Start", i),
+                        onChange: canvas.renderAll.bind(canvas),
+                        duration: 1000,
+                        fill: "forwards",
+                        onComplete: () => {
+                            canvas.remove(shuttleAnimationObject.current).renderAll()
+                            console.log("Completed",
+                                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.lastActiveAnimation, Date.now())
+                        }
+                    })
+            }
+        } else {
+            console.log("Shots Length 0")
+        }
+    }
+
+
+
+    /**
+     * Displays the current number of rallies or footworks placed on the canvas by the user
+     * @returns the chakra.div for displaying the rallies and footworks
+     * @function {addRally, addFunction}
+     */
+
+    const setRightMenu = () => {
+        let ralliesOrFootwork = null;
+        let l = null;
+        let colors = null;
+        if (mode === "Rally") {
+            l = arrayOfRallies.current.rallies;
+            if (l === undefined) {
+                l = []
+            }
+            colors = rallyColors
+            ralliesOrFootwork = "Rallies";
+        } else if (mode === "Footwork") {
+            l = arrayOfFootwork.current.footworks;
+            if (l === undefined) {
+                l = []
+            }
+            colors = footworkColors
+            ralliesOrFootwork = "Footworks";
+        } else {
+            l = [];
+            ralliesOrFootwork = "Select Simulation";
+        }
+        console.log("Currently Rendering : ", l)
+        return (
+            <chakra.div w={'100%'} m={1}>
+                <Center w="100%">
+                    <VStack w='100%'>
+                        <Text fontSize={"2xl"}>
+                            {ralliesOrFootwork}
+                        </Text>
+                        <Flex as='p' fontSize={"2xl"} mb={"1vh"}>
+
+                            {
+                                mode === "Rally" ?
+                                    <Checkbox isChecked={showAllRallies.current}
+                                        onChange={(e) => {
+                                            showAllRallies.current = e.target.checked
+                                            forceUpdate()
+                                            constructRally()
+                                        }}>
+                                        Show All Rallies on Court
+                                    </Checkbox>
+                                    : null
+                            }
+                        </Flex>
+                        <Flex as='p' fontSize={"2xl"} mb={"1vh"}>
+                            {
+                                mode === "Footwork" ?
+                                    <Checkbox isChecked={showAllFootworks.current}
+                                        onChange={(e) => {
+                                            showAllFootworks.current = e.target.checked
+                                            forceUpdate()
+                                            console.log("Called Footwork Now")
+                                            constructFootwork()
+                                        }}>
+                                        Show All Footworks on Court
+                                    </Checkbox>
+                                    : null
+                            }
+                        </Flex>
+
+                    </VStack>
+                </Center>
+
+                <chakra.div overflowY="auto">
+                    <OrderedList justifyContent="center" alignItems="left" spacing="1">
+                        {l.map((i, index) => (
+                            <ListItem key={index}>
+                                <Grid templateColumns="repeat(4, 1fr)" gap={1}>
+                                    <GridItem colSpan={3}>
+                                        <Input
+                                            aria-colspan={8}
+                                            w={'100%'}
+                                            onClick={() => {
+                                                if (mode === "Rally") {
+                                                    arrayOfRallies.current.currentActiveIndex = index
+                                                    clearMouseListeners()
+                                                    constructRally()
+                                                } else if (mode === "Footwork") {
+                                                    arrayOfFootwork.current.currentActiveIndex = index
+                                                    clearMouseListeners()
+                                                    constructFootwork()
+                                                }
+                                            }}
+                                            _hover={() => { }}
+                                            border={'solid'}
+                                            focusBorderColor={colors[index % colors.length]}
+                                            borderColor={colors[index % colors.length]}
+                                            defaultValue={i.name}
+                                            onChange={(e) => {
+                                                if (e.target.value === "") {
+                                                    e.target.placeholder = "Enter some value"
+                                                    forceUpdate()
+                                                    return
+                                                }
+                                                if (mode === "Rally") {
+                                                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].name = e.target.value
+                                                } else if (mode === "Footwork") {
+                                                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].name = e.target.value
+                                                }
+                                                forceUpdate()
+                                            }}
+                                        />
+                                    </GridItem>
+                                    <GridItem colSpan={1}>
+                                        <Text fontSize={'3xl'} as='button' onClick={() => {
+                                            if (window.confirm("Do you really want to delete this item")) {
+                                                if (mode === "Rally") {
+                                                    arrayOfRallies.current.rallies.splice(index, 1)
+                                                    console.log("Index : ", index)
+                                                    forceUpdate()
+                                                    // setRightMenu()
+                                                }
+                                                if (mode === "Footwork") {
+                                                    arrayOfFootwork.current.footworks.splice(index, 1)
+                                                    console.log("Index : ", index)
+                                                    forceUpdate()
+                                                    // setRightMenu()
+                                                }
+                                            }
+                                        }}>
+                                            <MdDelete />
+                                        </Text>
+                                    </GridItem>
+                                </Grid>
+                            </ListItem>
+                        ))}
+                    </OrderedList>
+                </chakra.div>
+            </chakra.div>
+        );
+    };
 
     /**
      * Simulation Menu consists of Controls for
@@ -1392,7 +1639,7 @@ export default function Layout() {
         {
             name: "New",
             icon: <BsPlusCircle />,
-            text: "Create",
+            p: "Create",
             colorScheme: "blue",
             func: () => {
                 if (mode === "Rally" || mode === "Footwork") {
@@ -1406,28 +1653,28 @@ export default function Layout() {
             name: "Run",
             icon: <BiPlayCircle />,
             colorScheme: "green",
-            text: "Run",
-            func: () => { }
+            p: "Run",
+            func: setShuttleAnimationObject,
         },
         {
             name: "Pause",
             icon: <BiPauseCircle />,
             colorScheme: "yellow",
-            text: "Pause",
+            p: "Pause",
             func: () => { }
         },
         {
             name: "Stop",
             icon: <BiStopCircle />,
             colorScheme: "red",
-            text: "Stop",
+            p: "Stop",
             func: () => { }
         },
         {
             name: "Reset",
             icon: <BiUndo />,
             colorScheme: "cyan",
-            text: "Reset",
+            p: "Reset",
             func: () => { }
         },
     ];
@@ -1441,24 +1688,17 @@ export default function Layout() {
             name: "Run All",
             icon: <BsPlayFill />,
             colorScheme: "teal",
-            text: "Run All",
+            p: "Run All",
             func: () => { }
         },
         {
             name: "Pause All",
             icon: <BsPauseFill />,
             colorScheme: "whatsapp",
-            text: "Pause All",
+            p: "Pause All",
             func: () => { }
         }
     ]
-
-    /**
-     * Mode of Color as per colorModeValue
-     */
-
-    let currentBackgroundColor = useColorModeValue("white", "gray.800");
-    let currentLineColor = useColorModeValue("gray.800", "white.200");
 
     /**
      * left panel displays properties of selected object and can be dynamicaly changed
@@ -1478,175 +1718,12 @@ export default function Layout() {
         },
     ];
 
-    /** Create a new rally in the state variable arrayOfRallies
-     * @updates {currentActiveIndex, arrayOfRallies}
-     * @returns none
-     * @problems previous state is reflected and does not ppend the current user inputed rally. 
-     * Cannot find `shots` attribute in the newly created rally @resolved
-     */
-
-    function addRally() {
-
-        let x = arrayOfRallies.current.rallies.length
-        if (x === undefined) {
-            x = 0
-        }
-        console.log("ARLen" + x)
-
-        arrayOfRallies.current.rallies.push({
-            name: rallyOrFootworkName.current.value,
-            shots: [],
-            lastY: -1,
-            objectHistory: []
-        })
-
-        arrayOfRallies.current.currentActiveIndex = x
-        forceUpdate()
-        constructRally();
-    }
-
     /**
-     * Create a new footwork in the state variable arrayOfFootwork.currents
-     * @updates {currentActiveIndexFootwork, numFootworks, arrayOfFootwork.currents}
-     * @returns none
-     * @problems previous state is reflected and does not ppend the current user inputed footwork. Cannot find `movements` attribute in the newly created footwork
-     */
-    function addFootwork() {
-
-        let x = arrayOfFootwork.current.footworks.length
-        if (x === undefined) {
-            x = 0
-        }
-        console.log("FOLen" + x)
-
-        arrayOfFootwork.current.footworks.push({
-            name: rallyOrFootworkName.current.value,
-            movements: [],
-            lastY: -1,
-            objectHistory: []
-        })
-        arrayOfFootwork.current.currentActiveIndex = x
-        forceUpdate()
-        constructFootwork();
-    }
-
-    /**
-     * Displays the current number of rallies or footworks placed on the canvas by the user
-     * @returns the chakra.div for displaying the rallies and footworks
-     * @function {addRally, addFunction}
+     * Mode of Color as per colorModeValue
      */
 
-    const setRightMenu = () => {
-        let ralliesOrFootwork = null;
-        let l = null;
-        let colors = null;
-        if (mode === "Rally") {
-            l = arrayOfRallies.current.rallies;
-            if (l === undefined) {
-                l = []
-            }
-            colors = rallyColors
-            ralliesOrFootwork = "Rallies";
-        } else if (mode === "Footwork") {
-            l = arrayOfFootwork.current.footworks;
-            if (l === undefined) {
-                l = []
-            }
-            colors = footworkColors
-            ralliesOrFootwork = "Footworks";
-        } else {
-            l = [];
-            ralliesOrFootwork = "Select Simulation";
-        }
-        console.log(l)
-        return (
-            <chakra.div w={'100%'} m={1}>
-                <Center w="100%">
-                    <VStack w='100%'>
-                        <Text fontSize={"2xl"}>
-                            {ralliesOrFootwork}
-                        </Text>
-                        <Flex as='text' fontSize={"2xl"} mb={"1vh"}>
-
-                            {
-                                mode === "Rally" ?
-                                    <Checkbox isChecked={showAllRallies.current}
-                                        onChange={(e) => {
-                                            showAllRallies.current = e.target.checked
-                                            forceUpdate()
-                                            constructRally()
-                                        }}>
-                                        Show All Rallies on Court
-                                    </Checkbox>
-                                    : null
-                            }
-                        </Flex>
-                        <Flex as='text' fontSize={"2xl"} mb={"1vh"}>
-                            {
-                                mode === "Footwork" ?
-                                    <Checkbox isChecked={showAllFootworks.current}
-                                        onChange={(e) => {
-                                            showAllFootworks.current = e.target.checked
-                                            forceUpdate()
-                                            console.log("Called Footwork Now")
-                                            constructFootwork()
-                                        }}>
-                                        Show All Footworks on Court
-                                    </Checkbox>
-                                    : null
-                            }
-                        </Flex>
-
-                    </VStack>
-                </Center>
-
-                <chakra.div overflowY="auto">
-                    <OrderedList justifyContent="center" alignItems="left" spacing="1">
-                        {l.map((i, index) => (
-                            <ListItem key={index}>
-                                <SimpleGrid columns="1" mx="4">
-                                    <Input
-                                        w={'100%'}
-                                        onClick={() => {
-                                            if (mode === "Rally") {
-                                                arrayOfRallies.current.currentActiveIndex = index
-                                                clearMouseListeners()
-                                                constructRally()
-                                            } else if (mode === "Footwork") {
-                                                arrayOfFootwork.current.currentActiveIndex = index
-                                                clearMouseListeners()
-                                                constructFootwork()
-                                            }
-                                        }
-                                        }
-                                        _hover={() => { }}
-                                        border={'solid'}
-                                        focusBorderColor={colors[index % colors.length]}
-                                        borderColor={colors[index % colors.length]}
-                                        defaultValue={i.name}
-                                        onChange={(e) => {
-                                            if (e.target.value === "") {
-                                                e.target.placeholder = "Enter some value"
-                                                forceUpdate()
-                                                return
-                                            }
-                                            if (mode === "Rally") {
-                                                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].name = e.target.value
-                                            } else if (mode === "Footwork") {
-                                                arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].name = e.target.value
-                                            }
-                                            forceUpdate()
-                                        }}
-                                    />
-
-                                </SimpleGrid>
-                            </ListItem>
-                        ))}
-                    </OrderedList>
-                </chakra.div>
-            </chakra.div>
-        );
-    };
+    let currentBackgroundColor = useColorModeValue("white", "gray.800");
+    let currentLineColor = useColorModeValue("gray.800", "white.200");
 
     return (
         <chakra.div my={5}>
@@ -1903,8 +1980,8 @@ export default function Layout() {
                             <SimpleGrid w={"100%"} columns={1} maxH={"30vh"} overflowY="auto">
                                 {advancedSimulationOperations.map((item) => {
                                     return (
-                                        <Flex key={item.name} 
-                                         display={showAllRallies.current || showAllFootworks.current ? "flex" : "none"}>
+                                        <Flex key={item.name}
+                                            display={showAllRallies.current || showAllFootworks.current ? "flex" : "none"}>
                                             <Tooltip label={item.name}>
                                                 <Button
                                                     m={1}
@@ -1914,7 +1991,7 @@ export default function Layout() {
                                                     fontSize={"xl"}
                                                     w={"100%"}
                                                 >
-                                                    {item.icon}<Text ml={2}>{item.text}</Text>
+                                                    {item.icon}<Text ml={2}>{item.p}</Text>
                                                 </Button>
                                             </Tooltip>
                                         </Flex>
@@ -1924,7 +2001,7 @@ export default function Layout() {
                         </VStack>
                     </Box>
                 </Box>
-                <Box display={["none", "flex"]} w={"19vw"} mr={"2vw"}>
+                <Box display={["none", "flex"]} w={"19vw"} mr={"2vw"} onChange={setRightMenu}>
                     {setRightMenu()}
                 </Box>
             </Stack>
@@ -1940,6 +2017,7 @@ export default function Layout() {
                     <ModalCloseButton />
                     <ModalBody>
                         <Input
+                            autoFocus
                             placeholder={mode === "Rally" ? "Rally Name" : "Footwork Name"}
                             ref={rallyOrFootworkName}
                         />
