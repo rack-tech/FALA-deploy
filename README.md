@@ -2,19 +2,28 @@
 - Rally Construction
     - Creation  : Done
     - Update    : Ongoing
-    - Delte     : Todo
+    - Delete     : Todo
 - Footwork Construction
     - Creation  : Done
     - Update    : Ongoing
-    - Delte     : Todo
+    - Delete     : Todo
 - Basic Editor Tool
     - Remove Undo and Redo operations (custom ops to be implemented)
     - Store created objects on different stack/array
+    - Undo, Redo and Clear History operations <Implement custom ops>
 
 ### Running Todos
-- Undo, Redo and Clear History operations <Implement custom ops>
-- Animation add and remove
+- All animations are running simultaneously
 - Undo function for Rallies and Footworks to be implemented
+- Grid Lines has a major problem needs to be resolved
+- Delete animation has synchronization issues
+
+## Changes on date 6 July 2021
+1. Both Menus are placed on left side, improvement in UI
+
+## Changes on date 3 July 2021
+1. Delete Rallies or Footwork is not yet complete
+2. Converted all UseState to UseRef for synchronous operation
 
 ## Changes on date 27 June 2021
 1. Maintain my state object arrays for canvas done

@@ -1,6 +1,6 @@
 import "./Layout.css";
 import Court from "./baddy_crt.jpg";
-import Shuttle from './badminton_shuttle.png'
+// import Shuttle from './badminton_shuttle.png'
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
     Box,
@@ -114,6 +114,9 @@ export default function Layout() {
 
     const [, forceUpdate] = useReducer((x) => x + 1, 0)
 
+    // Right Side Menu Reference
+    const rightMenuRef = useRef(null)
+
     /**
      * Simulation Related State Variables
      */
@@ -153,17 +156,14 @@ export default function Layout() {
         footworks: [],
     });
 
-    // Variable to keep reference of shuttle animation object
-    const shuttleAnimationObject = useRef()
-
-    // Variable to keep reference of footwork animation object
-    const [footworkAnimationObject, setFootworkAnimationObject] = useState(null)
-
     // Variable to keep track of show all rallies
     const showAllRallies = useRef(false)
 
     // Varaible to keep track of show all footworks
     const showAllFootworks = useRef(false)
+
+    // Variable for dirty bit if update has not been forced on Right Menu
+    const [rightMenuDirtyBit, setRightMenuDirtyBit] = useState(false)
 
     /**
      * Initialize Canvas every time reload happens
@@ -214,6 +214,16 @@ export default function Layout() {
         loadCanvas();
         // eslint-disable-next-line
     }, [boxDiv.current]);
+
+    /**
+     * @listens rightMenuDirtyBit
+     */
+    useEffect(() => {
+        if (rightMenuDirtyBit) {
+            console.log("Resetted")
+            setRightMenuDirtyBit(false)
+        }
+    }, [rightMenuDirtyBit])
 
     /**
      * Add Object Select Listener
@@ -830,9 +840,16 @@ export default function Layout() {
      */
 
     const initGridLines = (numRows, numColumns) => {
+        if (gridLineRefs.length > 0) {
+            for (let i = 0; i < gridLineRefs.length; i++) {
+                canvas.remove(gridLineRefs[i]);
+                console.log("removed", gridLineRefs[i])
+            }
+        }
+        setGridLineRefs([])
         setGridlines({
-            numColumns: numColumns, // 4
-            numRows: numRows, // 4
+            numColumns: numColumns,
+            numRows: numRows,
         });
 
         let incrementValueX = (dims.boxW - 6) / numRows;
@@ -845,6 +862,8 @@ export default function Layout() {
         //         console.log(i, j, dims.boxW, dims.boxH)
         //     }
         // }
+
+        console.log(gridLines.numColumns, gridLines.numRows)
 
         for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
             let line = new fabric.Line([i, 0, i, dims.boxH], {
@@ -1357,104 +1376,50 @@ export default function Layout() {
     }
 
     /**
-     * Set Animation Object
-     * Get current index of rally or footwork
-     * set current animation index as 0
-     * start 1st animation
-     * Animation : Line/Arc from point 1 to point 2
-     * Duration can be modified by user
-     * Need to see what to do with pause operation
+     * Create a function that draws a line from 2 points of a generated rally
+     * After drawing a rally, it waits for 1 second
+     * Then it returns
      * @returns None
-     * @updates {arrayOfFootwork, arrayOfRallies}
      */
 
-    const setShuttleAnimationObject = async () => {
-
-        fabric.Image.fromURL(Shuttle, (img) => {
-            img.scaleToWidth(dims.boxW / 20)
-            shuttleAnimationObject.current = img
-            console.log("Img : ", shuttleAnimationObject.current)
+    const drawOneRallyLine = async (from, to) => {
+        let line = new fabric.Line([from.x, from.y, to.x, to.y], {
+            selectable: true,
+            fill: "transparent",
+            stroke: "black",
+            strokeWidth: 3,
         })
-        setTimeout(function checker() {
-            if (shuttleAnimationObject.current !== null && shuttleAnimationObject.current !== undefined) {
-                startAnimation()
-            } else {
-                checker()
-            }
-        }, 100)
+        canvas.add(line)
+        setTimeout(() => {
+            canvas.remove(line)
+        }, 2000)
+        return true
     }
 
     /**
-     * Plays Shuttle Animation
-     * Listens events related to it
-     * @returns none
+     * @repeat drawOneRallyLine() for current array
+     * @returns None
      */
 
-    const startAnimation = () => {
-        if (shuttleAnimationObject.current === null || shuttleAnimationObject.current === undefined) {
-            console.log("NULL VAL FOUND")
+    const runCurrentAnimation = async () => {
+        if (isNaN(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length) ||
+        arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length <= 0) {
+            window.alert("Please add rally/footwork positions to run simulation")
+            console.log(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex], 
+                arrayOfRallies.current.currentActiveIndex)
+            return
+        } 
+        else if (arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length === 1) {
+            window.alert("Only 1 shot/footwork has been added, please add more than 1")
             return
         }
-        console.log("IN ANIMATION")
-        if (mode === "Rally" && arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].lastActiveAnimation === -1 &&
-            arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length > 0) {
-            // We have to start from beginning
-
-            // Set Shuttle to ith place going to i + 1th place
-            for (let i = 0;
-                i < arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length - 1; i++) {
-
-                let currY = checkHalfVertical(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y)
-                let left, top;
-                if (currY === 1) {
-                    left = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x -
-                        shuttleAnimationObject.current.getScaledWidth() / 2
-                    top = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y -
-                        shuttleAnimationObject.current.getScaledHeight() / 2
-                } else {
-                    left = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x +
-                        shuttleAnimationObject.current.getScaledWidth() / 2
-                    top = arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y +
-                        shuttleAnimationObject.current.getScaledHeight() / 2
-                }
-                let angle = Math.atan2(
-                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].y -
-                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].y,
-                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i].x -
-                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].x)
-                angle = (angle * 180) / Math.PI + 90
-
-                shuttleAnimationObject.current.set({
-                    left: left,
-                    top: top,
-                    angle: angle
-                })
-                canvas.add(shuttleAnimationObject.current).renderAll()
-
-                console.log(canvas.getObjects())
-                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.lastActiveAnimation = i
-                shuttleAnimationObject.current.animate({
-                    'left': arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].x,
-                    'top': arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1].y,
-                },
-                    {
-                        onStart: console.log("Start", i),
-                        onChange: canvas.renderAll.bind(canvas),
-                        duration: 1000,
-                        fill: "forwards",
-                        onComplete: () => {
-                            canvas.remove(shuttleAnimationObject.current).renderAll()
-                            console.log("Completed",
-                                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.lastActiveAnimation, Date.now())
-                        }
-                    })
-            }
-        } else {
-            console.log("Shots Length 0")
+        for (let i = 0; i < arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots.length - 1; i++) {
+            drawOneRallyLine(
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i],
+                arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].shots[i + 1])
         }
+        console.log(Worker.name)
     }
-
-
 
     /**
      * Displays the current number of rallies or footworks placed on the canvas by the user
@@ -1573,12 +1538,18 @@ export default function Layout() {
                                                     arrayOfRallies.current.rallies.splice(index, 1)
                                                     console.log("Index : ", index)
                                                     forceUpdate()
+                                                    console.log(rightMenuRef.current)
+                                                    setRightMenuDirtyBit(true)
+                                                    return
                                                     // setRightMenu()
                                                 }
                                                 if (mode === "Footwork") {
                                                     arrayOfFootwork.current.footworks.splice(index, 1)
                                                     console.log("Index : ", index)
+                                                    setRightMenuDirtyBit(true)
                                                     forceUpdate()
+
+                                                    return
                                                     // setRightMenu()
                                                 }
                                             }
@@ -1654,7 +1625,7 @@ export default function Layout() {
             icon: <BiPlayCircle />,
             colorScheme: "green",
             p: "Run",
-            func: setShuttleAnimationObject,
+            func: runCurrentAnimation,
         },
         {
             name: "Pause",
@@ -1728,7 +1699,167 @@ export default function Layout() {
     return (
         <chakra.div my={5}>
             <Stack direction={["column", "row"]}>
-                <Box display={["none", "flex"]} w={"19vw"} ml={"2vw"}>
+                
+                <Box w={"3vw"} h={dims.boxH}>
+                    <Box display={["none", "flex"]}>
+                        <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
+                            {objectsMenu.map((item) => {
+                                return (
+                                        <Tooltip label={item.name}>
+                                            <Button
+                                                variant='ghost'
+                                                borderRadius={0}
+                                                px={"0.1vw"}
+                                                py={"3vh"}
+                                                onClick={item.func}
+                                                color={currentLineColor}
+                                                fontSize={"xl"}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                                _hover={()=>{}}
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box h='35vh'></Box>
+                    <Box display={["none", "flex"]}>
+                        <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
+                            {canvasControlMenu.map((item) => {
+                                return (
+                                        <Tooltip label={item.name}>
+                                            <Button
+                                                borderRadius={0}
+                                                px={"0.2vw"}
+                                                py={"3vh"}
+                                                onClick={item.func}
+                                                fontSize={"md"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                                _hover={()=>{}}
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                </Box>
+                
+                <Box w={"3vw"}>
+                    <Box display={["none", "flex"]}>
+                        <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
+                            {simulationRefs.map((item) => {
+                                return (
+                                        <Tooltip label={item.name}>
+                                            <Button
+                                                _hover={()=>{}}
+                                                variant='ghost'
+                                                borderRadius={0}
+                                                px={"0.1vw"}
+                                                py={"3vh"}
+                                                onClick={item.func}
+                                                fontSize={"xl"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box display={["none", "flex"]} alignContent="center">
+                        <SimpleGrid flexGrow={1} columns={1} overflowY="auto">
+                            {simulationOptions.map((item) => {
+                                return (
+                                        <Tooltip label={item.name}>
+                                            <Button
+                                                _hover={()=>{}}
+                                                borderRadius={0}
+                                                px={"0.2vw"}
+                                                py={"3vh"}
+                                                onClick={item.func}
+                                                fontSize={"xl"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box display={["none", "flex"]}>
+                        <VStack flexGrow={1}>
+                            <SimpleGrid columns={1} overflowY="auto">
+                                {simulationOperations.map((item) => {
+                                    return (
+                                            <Tooltip label={item.name}>
+                                                <Button
+                                                    _hover={()=>{}}
+                                                    variant='ghost'
+                                                    borderRadius={0}
+                                                    py={"3vh"}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                    );
+                                })}
+                            </SimpleGrid>
+                            <SimpleGrid w={"100%"} columns={1} maxH={"30vh"} overflowY="auto">
+                                {advancedSimulationOperations.map((item) => {
+                                    return (
+                                            <Tooltip label={item.name} >
+                                                <Button
+                                                    _hover={()=>{}}
+                                                    display={showAllRallies.current || showAllFootworks.current ? "flex" : "none"}
+                                                    borderRadius={0}
+                                                    variant='ghost'
+                                                    py={"3vh"}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                    );
+                                })}
+                            </SimpleGrid>
+                        </VStack>
+                    </Box>
+                </Box>
+
+                <Box display={["none", "flex"]} w={"22vw"} ml={"2vw"}>
                     <VStack align={'flex-start'}>
                         <Table variant="simple" maxH={"10vh"} overflowY="auto" size="xsm">
                             <Thead>
@@ -1821,187 +1952,17 @@ export default function Layout() {
                     </VStack>
                 </Box>
 
-                <Box w={"10vw"} h={dims.boxH}>
-                    <Center w="100%">
-                        <Text fontSize={"2xl"}>Objects</Text>
-                    </Center>
-                    <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"40vh"} overflowY="auto" flexGrow={1}>
-                            {objectsMenu.map((item) => {
-                                return (
-                                    <Flex scroll={"true"} key={item.name}>
-                                        <Tooltip label={item.name}>
-                                            <Button
-                                                px={"0.2vw"}
-                                                py={"3vh"}
-                                                onClick={item.func}
-                                                color={currentLineColor}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Flex>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Center w="100%">
-                        <Text fontSize={"2xl"}>Object Controls</Text>
-                    </Center>
-                    <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"20vh"} overflowY="auto" flexGrow={1}>
-                            {canvasControlMenu.map((item) => {
-                                return (
-                                    <Flex scroll="true" key={item.name}>
-                                        <Tooltip label={item.name}>
-                                            <Button
-                                                px={"0.2vw"}
-                                                py={"3vh"}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Flex>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                </Box>
+                
                 <Box
-                    w={["100vw", "36vw", "40vw"]}
-                    minW={"35vw"}
+                    w={["100vw", "30vw", "30vw"]}
+                    minW={"30vw"}
                     h={"95vh"}
                     ref={boxDiv}
                 >
                     <canvas id="canvas"></canvas>
                 </Box>
-                <Box w={"10vw"}>
-                    <Box w="100%">
-                        <Text fontSize={"2xl"}>Reference Points</Text>
-                    </Box>
-                    <Box display={["none", "flex"]}>
-                        <SimpleGrid w={"8vw"} columns={2} maxH={"15vh"} overflowY="auto" flexGrow={1}>
-                            {simulationRefs.map((item) => {
-                                return (
-                                    <Flex scroll="true" key={item.name}>
-                                        <Tooltip label={item.name}>
-                                            <Button
-                                                px={"0.2vw"}
-                                                py={"3vh"}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Flex>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Center w="100%">
-                        <Text fontSize={"xl"}>Simulations</Text>
-                    </Center>
-                    <Box display={["none", "flex"]} alignContent="center">
-                        <SimpleGrid w={"8vw"} flexGrow={1} columns={2} overflowY="auto">
-                            {simulationOptions.map((item) => {
-                                return (
-                                    <Flex scroll="true" key={item.name}>
-                                        <Tooltip label={item.name}>
-                                            <Button
-                                                px={"0.2vw"}
-                                                py={"3vh"}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Flex>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Center w="100%">
-                        <Text fontSize={"xl"}>Simulation Controls</Text>
-                    </Center>
-                    <Box display={["none", "flex"]}>
-                        <VStack flexGrow={1}>
-                            <SimpleGrid w={"100%"} columns={2} maxH={"30vh"} overflowY="auto">
-                                {simulationOperations.map((item) => {
-                                    return (
-                                        <Flex key={item.name}>
-                                            <Tooltip label={item.name}>
-                                                <Button
-                                                    m={1}
-                                                    py={"3vh"}
-                                                    colorScheme={item.colorScheme}
-                                                    onClick={item.func}
-                                                    fontSize={"xl"}
-                                                    w={"100%"}
-                                                >
-                                                    {item.icon}
-                                                </Button>
-                                            </Tooltip>
-                                        </Flex>
-                                    );
-                                })}
-                            </SimpleGrid>
-                            <SimpleGrid w={"100%"} columns={1} maxH={"30vh"} overflowY="auto">
-                                {advancedSimulationOperations.map((item) => {
-                                    return (
-                                        <Flex key={item.name}
-                                            display={showAllRallies.current || showAllFootworks.current ? "flex" : "none"}>
-                                            <Tooltip label={item.name}>
-                                                <Button
-                                                    m={1}
-                                                    py={"2vh"}
-                                                    colorScheme={item.colorScheme}
-                                                    onClick={item.func}
-                                                    fontSize={"xl"}
-                                                    w={"100%"}
-                                                >
-                                                    {item.icon}<Text ml={2}>{item.p}</Text>
-                                                </Button>
-                                            </Tooltip>
-                                        </Flex>
-                                    );
-                                })}
-                            </SimpleGrid>
-                        </VStack>
-                    </Box>
-                </Box>
-                <Box display={["none", "flex"]} w={"19vw"} mr={"2vw"} onChange={setRightMenu}>
+                
+                <Box display={["none", "flex"]} w={"22vw"} mr={"2vw"} onChange={setRightMenu} ref={rightMenuRef}>
                     {setRightMenu()}
                 </Box>
             </Stack>
