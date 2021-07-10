@@ -1566,6 +1566,7 @@ export default function Layout() {
     ) {
       lastActiveAnimation = 0;
     }
+    console.log("Called", lastActiveAnimation);
     ctx.moveTo(
       arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
         .shots[lastActiveAnimation].x,
@@ -1580,6 +1581,9 @@ export default function Layout() {
     );
     ctx.stroke();
     lastActiveAnimation += 1;
+    arrayOfRallies.current.rallies[
+      arrayOfRallies.current.currentActiveIndex
+    ].lastActiveAnimation = lastActiveAnimation;
   };
 
   /**
@@ -1624,7 +1628,7 @@ export default function Layout() {
         1;
       i++
     ) {
-      window.setInterval(drawOneRallyLine(ctx), 1000);
+      setTimeout(() => drawOneRallyLine(ctx), i*1000);
     }
   };
 
@@ -1714,6 +1718,7 @@ export default function Layout() {
                           constructFootwork();
                         }
                       }}
+                      value={i.name}
                       _hover={() => {}}
                       border={"solid"}
                       focusBorderColor={colors[index % colors.length]}
@@ -2189,7 +2194,7 @@ export default function Layout() {
           display={["none", "flex"]}
           w={"22vw"}
           mr={"2vw"}
-          onChange={setRightMenu}
+          // onChange={setRightMenu}
           ref={rightMenuRef}
         >
           {setRightMenu()}
