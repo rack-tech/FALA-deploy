@@ -1,22 +1,35 @@
 ### Running Checklist
-- Rally Construction
-    - Creation  : Done
-    - Update    : Ongoing
-    - Delete     : Todo
-- Footwork Construction
-    - Creation  : Done
-    - Update    : Ongoing
-    - Delete     : Todo
-- Basic Editor Tool
-    - Remove Undo and Redo operations (custom ops to be implemented)
-    - Store created objects on different stack/array
-    - Undo, Redo and Clear History operations <Implement custom ops>
+- Synchronization across Animations - TODO
+- Exporting Canvas - TODO
+- Dashboard Wrapper - TODO
+- Use Different Backgrounds and Different Presets for same Functionality - TODO
 
 ### Running Todos
+
 - All animations are running simultaneously
-- Undo function for Rallies and Footworks to be implemented
 - Grid Lines has a major problem needs to be resolved
-- Delete animation has synchronization issues
+
+## Changes on date 12 July 2021
+
+1. Completed :
+
+    - Rally Construction
+
+        - Creation : Done
+        - Update : Done
+        - Delete : Done
+    - Footwork Construction
+
+        - Creation : Done
+        - Update : Done
+        - Delete : Done
+
+2. Completed
+   - Basic Editor Tool
+     - Remove Undo and Redo operations (custom ops to be implemented)
+     - Store created objects on different stack/array
+
+
 
 ## Changes on date 6 July 2021
 1. Both Menus are placed on left side, improvement in UI
@@ -38,5 +51,4 @@
 1. Color mode implemented
 2. Changes to Rally and Footwork State Variables
 3. State Variable setting patterns changed, these patterns have to be implemented by you in similar fashion
-4. Animation Setting done, show animation left 
-
+4. Animation Setting done, show animation left

@@ -1,6 +1,8 @@
 import "./Layout.css";
 import Court from "./baddy_crt.jpg";
-// import Shuttle from './badminton_shuttle.png'
+import Shuttle from "./badminton_shuttle.png";
+import Boot from "./top_view_shoe.png";
+
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
   Box,
@@ -34,6 +36,7 @@ import {
   Checkbox,
   Grid,
   GridItem,
+  Divider,
 } from "@chakra-ui/react";
 
 import { fabric } from "fabric";
@@ -62,6 +65,8 @@ import {
   GrClearOption,
   MdDelete,
 } from "react-icons/all";
+
+import { SketchPicker, ChromePicker } from "react-color";
 
 import { rallyColors, footworkColors } from "../Vars/Colors";
 
@@ -116,6 +121,13 @@ export default function Layout() {
   // Right Side Menu Reference
   const rightMenuRef = useRef(null);
 
+// State Variable to store Shape Properties
+const shapeProps = useRef({
+  fill: null,
+  borderColor: null,
+  borderWidth: null,
+});
+
   /**
    * Simulation Related State Variables
    */
@@ -166,6 +178,9 @@ export default function Layout() {
 
   // Run animation flag
   const runFlag = useRef(false);
+
+// Animation Object
+const animationObject = useRef(null);
 
   /**
    * Initialize Canvas every time reload happens
@@ -1551,8 +1566,7 @@ export default function Layout() {
    * @returns None
    */
 
-  const drawOneRallyLine = (ctx) => {
-    console.log("Called");
+  const drawOneRallyLine = (img) => {
     let lastActiveAnimation =
       arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
         .lastActiveAnimation;
@@ -1565,25 +1579,75 @@ export default function Layout() {
         1
     ) {
       lastActiveAnimation = 0;
+return;
+
     }
-    console.log("Called", lastActiveAnimation);
-    ctx.moveTo(
-      arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
-        .shots[lastActiveAnimation].x,
-      arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
-        .shots[lastActiveAnimation].y
-    );
-    ctx.lineTo(
-      arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
-        .shots[lastActiveAnimation + 1].x,
-      arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
-        .shots[lastActiveAnimation + 1].y
-    );
-    ctx.stroke();
-    lastActiveAnimation += 1;
-    arrayOfRallies.current.rallies[
-      arrayOfRallies.current.currentActiveIndex
-    ].lastActiveAnimation = lastActiveAnimation;
+
+    if (runFlag) {
+      let angle =
+        (Math.atan2(
+          arrayOfRallies.current.rallies[
+            arrayOfRallies.current.currentActiveIndex
+          ].shots[lastActiveAnimation].y -
+            arrayOfRallies.current.rallies[
+              arrayOfRallies.current.currentActiveIndex
+            ].shots[lastActiveAnimation + 1].y,
+          arrayOfRallies.current.rallies[
+            arrayOfRallies.current.currentActiveIndex
+          ].shots[lastActiveAnimation].x -
+            arrayOfRallies.current.rallies[
+              arrayOfRallies.current.currentActiveIndex
+            ].shots[lastActiveAnimation + 1].x
+        ) *
+          180) /
+          Math.PI +
+        90;
+      img.set({
+        left: arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].shots[lastActiveAnimation].x,
+        top: arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].shots[lastActiveAnimation].y,
+        angle: angle,
+      });
+      img.animate(
+        {
+          left: arrayOfRallies.current.rallies[
+            arrayOfRallies.current.currentActiveIndex
+          ].shots[lastActiveAnimation + 1].x,
+          top: arrayOfRallies.current.rallies[
+            arrayOfRallies.current.currentActiveIndex
+          ].shots[lastActiveAnimation + 1].y,
+        },
+        {
+          duration: 4000,
+          onChange: canvas.renderAll.bind(canvas),
+          onComplete: () => {
+            console.log(
+              lastActiveAnimation,
+              " : ",
+              arrayOfRallies.current.rallies[
+                arrayOfRallies.current.currentActiveIndex
+              ].shots.length - 2
+            );
+            if (
+              lastActiveAnimation ===
+              arrayOfRallies.current.rallies[
+                arrayOfRallies.current.currentActiveIndex
+              ].shots.length -
+                2
+            ) {
+              animationObject.current = null;
+              canvas.remove(img);
+            }
+          },
+        }
+      );
+      arrayOfRallies.current.rallies[
+        arrayOfRallies.current.currentActiveIndex
+      ].lastActiveAnimation = lastActiveAnimation + 1;
+    }
   };
 
   /**
@@ -1591,7 +1655,7 @@ export default function Layout() {
    * @returns None
    */
 
-  const runCurrentAnimation = async () => {
+  const runCurrentShuttleAnimation = () => {
     if (
       isNaN(
         arrayOfRallies.current.rallies[
@@ -1618,18 +1682,224 @@ export default function Layout() {
       );
       return;
     }
-    let ctx = canvas.getContext("2d");
-    console.log(ctx);
-    for (
-      let i = 0;
-      i <
-      arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
-        .shots.length -
-        1;
-      i++
+
+    new fabric.Image.fromURL(Shuttle, (img) => {
+      if (animationObject.current === null) {
+        animationObject.current = img;
+        canvas.add(animationObject.current);
+        animationObject.current.scaleToWidth(40);
+      }
+
+      if (
+        arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].lastActiveAnimation ===
+        arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].shots.length -
+          1
+      ) {
+        arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].lastActiveAnimation = 0;
+      }
+
+      for (
+        let i =
+            arrayOfRallies.current.rallies[
+              arrayOfRallies.current.currentActiveIndex
+            ].lastActiveAnimation,
+          waitFlag = 0;
+        i <
+        arrayOfRallies.current.rallies[
+          arrayOfRallies.current.currentActiveIndex
+        ].shots.length -
+          1;
+        i++
+      ) {
+        if (i === -1) {
+          continue;
+        }
+        console.log(i);
+        setTimeout(() => {
+          drawOneRallyLine(animationObject.current);
+        }, waitFlag * 4000);
+        waitFlag++;
+      }
+    });
+  };
+
+  /**
+   * Create a function that draws a line from 2 points of a generated footwork
+   * After drawing a footwork movement, it returns call to
+   * @function runCurrentFootworkAnimation
+   * @returns None
+   */
+
+  const drawOneFootworkLine = (img) => {
+    let lastActiveAnimation =
+      arrayOfFootwork.current.footworks[
+        arrayOfFootwork.current.currentActiveIndex
+      ].lastActiveAnimation;
+    if (lastActiveAnimation === -1) {
+      lastActiveAnimation = 0;
+    } else if (
+      lastActiveAnimation ===
+      arrayOfFootwork.current.footworks[
+        arrayOfFootwork.current.currentActiveIndex
+      ].movements.length -
+        1
     ) {
-      setTimeout(() => drawOneRallyLine(ctx), i*1000);
+      lastActiveAnimation = 0;
+      return;
     }
+
+    if (runFlag) {
+      let angle =
+        (Math.atan2(
+          arrayOfFootwork.current.footworks[
+            arrayOfFootwork.current.currentActiveIndex
+          ].movements[lastActiveAnimation].y -
+            arrayOfFootwork.current.footworks[
+              arrayOfFootwork.current.currentActiveIndex
+            ].movements[lastActiveAnimation + 1].y,
+          arrayOfFootwork.current.footworks[
+            arrayOfFootwork.current.currentActiveIndex
+          ].movements[lastActiveAnimation].x -
+            arrayOfFootwork.current.footworks[
+              arrayOfFootwork.current.currentActiveIndex
+            ].movements[lastActiveAnimation + 1].x
+        ) *
+          180) /
+          Math.PI +
+        90;
+      img.set({
+        left: arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].movements[lastActiveAnimation].x,
+        top: arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].movements[lastActiveAnimation].y,
+        angle: angle,
+      });
+      img.animate(
+        {
+          left: arrayOfFootwork.current.footworks[
+            arrayOfFootwork.current.currentActiveIndex
+          ].movements[lastActiveAnimation + 1].x,
+          top: arrayOfFootwork.current.footworks[
+            arrayOfFootwork.current.currentActiveIndex
+          ].movements[lastActiveAnimation + 1].y,
+        },
+        {
+          duration: 4000,
+          onChange: canvas.renderAll.bind(canvas),
+          onComplete: () => {
+            console.log(
+              lastActiveAnimation,
+              " : ",
+              arrayOfFootwork.current.footworks[
+                arrayOfFootwork.current.currentActiveIndex
+              ].movements.length - 2
+            );
+            if (
+              lastActiveAnimation ===
+              arrayOfFootwork.current.footworks[
+                arrayOfFootwork.current.currentActiveIndex
+              ].movements.length -
+                2
+            ) {
+              animationObject.current = null;
+              canvas.remove(img);
+            }
+          },
+        }
+      );
+      arrayOfFootwork.current.footworks[
+        arrayOfFootwork.current.currentActiveIndex
+      ].lastActiveAnimation = lastActiveAnimation + 1;
+    }
+  };
+
+  /**
+   * @repeat drawOneFoorworkLine() for current array
+   * @returns None
+   */
+
+  const runCurrentFootworkAnimation = () => {
+    if (
+      isNaN(
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].movements.length
+      ) ||
+      arrayOfFootwork.current.footworks[
+        arrayOfFootwork.current.currentActiveIndex
+      ].movements.length <= 0
+    ) {
+      window.alert("Please add rally/footwork positions to run simulation");
+      console.log(
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ],
+        arrayOfFootwork.current.currentActiveIndex
+      );
+      return;
+    } else if (
+      arrayOfFootwork.current.footworks[
+        arrayOfFootwork.current.currentActiveIndex
+      ].movements.length === 1
+    ) {
+      window.alert(
+        "Only 1 shot/footwork has been added, please add more than 1"
+      );
+      return;
+    }
+
+    new fabric.Image.fromURL(Boot, (img) => {
+      if (animationObject.current === null) {
+        animationObject.current = img;
+        canvas.add(animationObject.current);
+        animationObject.current.scaleToWidth(40);
+      }
+
+      if (
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].lastActiveAnimation ===
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].movements.length -
+          1
+      ) {
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].lastActiveAnimation = 0;
+      }
+
+      for (
+        let i =
+            arrayOfFootwork.current.footworks[
+              arrayOfFootwork.current.currentActiveIndex
+            ].lastActiveAnimation,
+          waitFlag = 0;
+        i <
+        arrayOfFootwork.current.footworks[
+          arrayOfFootwork.current.currentActiveIndex
+        ].movements.length -
+          1;
+        i++
+      ) {
+        if (i === -1) {
+          continue;
+        }
+        console.log(waitFlag);
+        setTimeout(() => {
+          drawOneFootworkLine(animationObject.current);
+        }, waitFlag * 4000);
+        waitFlag++;
+      }
+    });
   };
 
   /**
@@ -1844,7 +2114,13 @@ export default function Layout() {
       icon: <BiPlayCircle />,
       colorScheme: "green",
       p: "Run",
-      func: runCurrentAnimation,
+      func: () => {
+        if (mode === "Rally") {
+          runCurrentShuttleAnimation();
+        } else if (mode === "Footwork") {
+          runCurrentFootworkAnimation();
+        }
+      },
     },
     {
       name: "Pause",
@@ -1918,154 +2194,212 @@ export default function Layout() {
   return (
     <chakra.div my={5}>
       <Stack direction={["column", "row"]}>
-        <Box w={"5vw"} h={dims.boxH}>
+        <Box w={"3vw"} h={dims.boxH}>
           <Box display={["none", "flex"]}>
-            <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
-              {objectsMenu.map((item) => {
+            <SimpleGrid columns={1} overflowY="auto" overflow="hidden">
+              {objectsMenu.map((item, idx) => {
                 return (
-                  <Tooltip label={item.name}>
-                    <Button
-                      variant="ghost"
-                      borderRadius={0}
-                      px={"1vw"}
-                      py={"3vh"}
-                      onClick={item.func}
-                      color={currentLineColor}
-                      fontSize={"xl"}
-                      bg={
-                        mode === item.name ? "blue.400" : currentBackgroundColor
-                      }
-                      _hover={() => {}}
-                    >
-                      {item.icon}
-                    </Button>
-                  </Tooltip>
+                  <Box w={"100%"}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        variant="ghost"
+                        borderRadius={0}
+                        onClick={item.func}
+                        color={currentLineColor}
+                        fontSize={"xl"}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                        _hover={() => {}}
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                    {idx === 1 || idx === objectsMenu.length - 1 ? (
+                      <Divider
+                        my={5}
+                        w={"1%"}
+                        // borderColor="blue.400"
+                        // borderWidth="2px"
+                      />
+                    ) : null}
+                  </Box>
                 );
               })}
             </SimpleGrid>
           </Box>
-          <Box h="35vh"></Box>
           <Box display={["none", "flex"]}>
-            <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
+            <SimpleGrid
+              columns={1}
+              overflowY="auto"
+              flexGrow={1}
+              overflow="hidden"
+            >
               {canvasControlMenu.map((item) => {
                 return (
-                  <Tooltip label={item.name}>
-                    <Button
-                      borderRadius={0}
-                      px={"0.2vw"}
-                      py={"3vh"}
-                      onClick={item.func}
-                      fontSize={"md"}
-                      w={"100%"}
-                      color={currentLineColor}
-                      bg={
-                        mode === item.name ? "blue.400" : currentBackgroundColor
-                      }
-                      _hover={() => {}}
-                    >
-                      {item.icon}
-                    </Button>
-                  </Tooltip>
+                  <Box w={"100%"}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        borderRadius={0}
+                        onClick={item.func}
+                        fontSize={"2xl"}
+                        w={"100%"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                        _hover={() => {}}
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                  </Box>
                 );
               })}
             </SimpleGrid>
           </Box>
         </Box>
 
-        <Box w={"5vw"}>
+        <Box w={"3vw"}>
           <Box display={["none", "flex"]}>
-            <SimpleGrid columns={1} overflowY="auto" flexGrow={1}>
-              {simulationRefs.map((item) => {
+            <SimpleGrid columns={1} overflowY="auto" overflow="hidden">
+              {simulationRefs.map((item, idx) => {
                 return (
-                  <Tooltip label={item.name}>
-                    <Button
-                      _hover={() => {}}
-                      variant="ghost"
-                      borderRadius={0}
-                      px={"0.1vw"}
-                      py={"3vh"}
-                      onClick={item.func}
-                      fontSize={"xl"}
-                      w={"100%"}
-                      color={currentLineColor}
-                      bg={
-                        mode === item.name ? "blue.400" : currentBackgroundColor
-                      }
-                    >
-                      {item.icon}
-                    </Button>
-                  </Tooltip>
+                  <Box w={"100%"}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        _hover={() => {}}
+                        variant="ghost"
+                        borderRadius={0}
+                        onClick={item.func}
+                        fontSize={"xl"}
+                        w={"100%"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                    {idx === simulationRefs.length - 1 ? (
+                      <Divider
+                        my={5}
+                        w={"1%"}
+                        // borderColor="blue.400"
+                        // borderWidth="2px"
+                      />
+                    ) : null}
+                  </Box>
                 );
               })}
             </SimpleGrid>
           </Box>
           <Box display={["none", "flex"]} alignContent="center">
-            <SimpleGrid flexGrow={1} columns={1} overflowY="auto">
-              {simulationOptions.map((item) => {
+            <SimpleGrid
+              flexGrow={1}
+              columns={1}
+              overflowY="auto"
+              overflow="hidden"
+            >
+              {simulationOptions.map((item, idx) => {
                 return (
-                  <Tooltip label={item.name}>
-                    <Button
-                      _hover={() => {}}
-                      borderRadius={0}
-                      px={"0.2vw"}
-                      py={"3vh"}
-                      onClick={item.func}
-                      fontSize={"xl"}
-                      w={"100%"}
-                      color={currentLineColor}
-                      bg={
-                        mode === item.name ? "blue.400" : currentBackgroundColor
-                      }
-                    >
-                      {item.icon}
-                    </Button>
-                  </Tooltip>
+                  <Box w={"100%"}>
+                    <Tooltip label={item.name}>
+                      <Button
+                        _hover={() => {}}
+                        borderRadius={0}
+                        onClick={item.func}
+                        fontSize={"xl"}
+                        w={"100%"}
+                        color={currentLineColor}
+                        bg={
+                          mode === item.name
+                            ? "blue.400"
+                            : currentBackgroundColor
+                        }
+                      >
+                        {item.icon}
+                      </Button>
+                    </Tooltip>
+                    {idx === simulationOptions.length - 1 ? (
+                      <Divider
+                        my={5}
+                        w={"1%"}
+                        // borderColor="blue.400"
+                        // borderWidth="2px"
+                      />
+                    ) : null}
+                  </Box>
                 );
               })}
             </SimpleGrid>
           </Box>
           <Box display={["none", "flex"]}>
             <VStack flexGrow={1}>
-              <SimpleGrid columns={1} overflowY="auto">
-                {simulationOperations.map((item) => {
+              <SimpleGrid columns={1} overflow="hidden">
+                {simulationOperations.map((item, idx) => {
                   return (
-                    <Tooltip label={item.name}>
-                      <Button
-                        _hover={() => {}}
-                        variant="ghost"
-                        borderRadius={0}
-                        py={"3vh"}
-                        onClick={item.func}
-                        fontSize={"xl"}
-                        w={"100%"}
-                      >
-                        {item.icon}
-                      </Button>
-                    </Tooltip>
+                    <Box w="100%">
+                      <Tooltip label={item.name}>
+                        <Button
+                          _hover={() => {}}
+                          variant="ghost"
+                          borderRadius={0}
+                          onClick={item.func}
+                          fontSize={"xl"}
+                          w={"100%"}
+                        >
+                          {item.icon}
+                        </Button>
+                      </Tooltip>
+                      {idx === simulationOperations.length - 1 ? (
+                        <Divider
+                          my={5}
+                          w={"1%"}
+                          // borderColor="blue.400"
+                          // borderWidth="2px"
+                        />
+                      ) : null}
+                    </Box>
                   );
                 })}
               </SimpleGrid>
-              <SimpleGrid w={"100%"} columns={1} maxH={"30vh"} overflowY="auto">
-                {advancedSimulationOperations.map((item) => {
+              <SimpleGrid
+                w={"100%"}
+                columns={1}
+                maxH={"30vh"}
+                overflow="hidden"
+              >
+                {advancedSimulationOperations.map((item, idx) => {
                   return (
-                    <Tooltip label={item.name}>
-                      <Button
-                        _hover={() => {}}
-                        display={
-                          showAllRallies.current || showAllFootworks.current
-                            ? "flex"
-                            : "none"
-                        }
-                        borderRadius={0}
-                        variant="ghost"
-                        py={"3vh"}
-                        onClick={item.func}
-                        fontSize={"xl"}
-                        w={"100%"}
-                      >
-                        {item.icon}
-                      </Button>
-                    </Tooltip>
+                    <Box
+                      w="100%"
+                      display={
+                        showAllFootworks.current || showAllRallies.current
+                          ? "flex"
+                          : "none"
+                      }
+                    >
+                      <Tooltip label={item.name}>
+                        <Button
+                          _hover={() => {}}
+                          variant="ghost"
+                          borderRadius={0}
+                          onClick={item.func}
+                          fontSize={"xl"}
+                          w={"100%"}
+                        >
+                          {item.icon}
+                        </Button>
+                      </Tooltip>
+                    </Box>
                   );
                 })}
               </SimpleGrid>
@@ -2073,7 +2407,7 @@ export default function Layout() {
           </Box>
         </Box>
 
-        <Box display={["none", "flex"]} w={"22vw"} ml={"2vw"}>
+        <Box display={["none", "flex"]} w={"10vw"} m={"2vw"}>
           <VStack align={"flex-start"}>
             <Table variant="simple" maxH={"10vh"} overflowY="auto" size="xsm">
               <Thead>
@@ -2128,7 +2462,7 @@ export default function Layout() {
                 type="number"
                 name="x"
                 size="md"
-                mt={2}
+                mt={1}
                 onChange={(e) => {
                   setGridlines((prevGridLines) => ({
                     ...prevGridLines,
@@ -2141,7 +2475,7 @@ export default function Layout() {
                 type="number"
                 name="y"
                 size="md"
-                mt={2}
+                mt={1}
                 onChange={(e) => {
                   setGridlines((prevGridLines) => ({
                     ...prevGridLines,
@@ -2149,35 +2483,45 @@ export default function Layout() {
                   }));
                 }}
               />
-              <Button colorScheme="blue" mt={3} w={"100%"} onClick={showGrids}>
+            </Box>
+            <SimpleGrid columns={1}>
+              <Button
+                colorScheme="blue"
+                m={1}
+                w={"100%"}
+                onClick={showGrids}
+                mb={1}
+              >
                 Set Grid Lines
               </Button>
-            </Box>
-            <Button
-              w={"100%"}
-              colorScheme="red"
-              onClick={() => {
-                // Get all Objects and Remove them one by one
-                let objects = canvas.getObjects();
-                for (var i = 0; i < objects.length; i++) {
-                  canvas.remove(objects[i]);
-                }
-                canvas.renderAll();
+              <Button
+                // w={"100%"}
+                m={1}
+                colorScheme="red"
+                onClick={() => {
+                  // Get all Objects and Remove them one by one
+                  let objects = canvas.getObjects();
+                  for (var i = 0; i < objects.length; i++) {
+                    canvas.remove(objects[i]);
+                  }
+                  canvas.renderAll();
 
-                // Remove everything from CanvasObjects array also
-                canvasObjects.current = [];
-              }}
-            >
-              Reload Canvas
-            </Button>
-            <Button
-              w={"100%"}
-              variant="outline"
-              colorScheme="black"
-              onClick={toggleColorMode}
-            >
-              Toggle to {colorMode === "light" ? "Dark" : "Light"} mode
-            </Button>
+                  // Remove everything from CanvasObjects array also
+                  canvasObjects.current = [];
+                }}
+              >
+                Reload Canvas
+              </Button>
+              <Button
+                m={1}
+                // w={"100%"}
+                variant="outline"
+                colorScheme="black"
+                onClick={toggleColorMode}
+              >
+                Toggle {colorMode === "light" ? "Dark" : "Light"}
+              </Button>
+            </SimpleGrid>
           </VStack>
         </Box>
 
