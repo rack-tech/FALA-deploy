@@ -8,7 +8,7 @@
 - All animations are running simultaneously
 - Grid Lines has a major problem needs to be resolved
 
-# Changes on date 14 July 2021
+## Changes on date 14 July 2021
 
 Completed : 
 
