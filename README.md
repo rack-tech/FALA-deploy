@@ -1,6 +1,5 @@
 ### Running Checklist
 - Synchronization across Animations - TODO
-- Exporting Canvas - TODO
 - Dashboard Wrapper - TODO
 - Use Different Backgrounds and Different Presets for same Functionality - TODO
 
@@ -8,6 +7,15 @@
 
 - All animations are running simultaneously
 - Grid Lines has a major problem needs to be resolved
+
+# Changes on date 14 July 2021
+
+Completed : 
+
+- Exporting Canvas - DONE
+- A lot of tasks for animations and UI/UX
+- Debugging of a lot of bugs in Animations
+
 
 ## Changes on date 12 July 2021
 
