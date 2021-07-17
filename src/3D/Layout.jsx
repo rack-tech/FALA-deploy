@@ -20,8 +20,6 @@ import {
     useColorMode,
     useColorModeValue,
     VStack,
-    InputGroup,
-    InputLeftAddon,
     useDisclosure,
     OrderedList,
     Modal,
@@ -60,13 +58,11 @@ import randomColor from 'randomcolor'
 import {
     BiCircle,
     BiEdit,
-    BiGridSmall,
     BiPointer,
     BiText,
     BiTrash,
     BsSquare,
     BsTriangle,
-    GiMagnifyingGlass,
     GiShuttlecock,
     IoEllipseOutline,
     RiSubtractLine,
@@ -142,13 +138,6 @@ export default function Layout3D(props) {
      * Simulation Related State Variables
      */
 
-    // Boolean value to show lines on click
-    const [showRefLines, setShowRefLines] = useState(true);
-
-    // Store references of lines that are drawn as reference lines
-    const [refLineX, setRefLineX] = useState(null);
-    const [refLineY, setRefLineY] = useState(null);
-
     // Array to store all shots played
     const arrayOfRallies = useRef({
         currentActiveIndex: 0,
@@ -160,16 +149,6 @@ export default function Layout3D(props) {
 
     // reference variable to get the rally name or footwork name
     const rallyOrFootworkName = useRef(null);
-
-    // Store Gridlines and their values
-    const gridLines = useRef({
-        show: true,
-        numRows: 1,
-        numColumns: 1,
-    });
-
-    // Store Gridline references
-    const gridLineRefs = useRef([]);
 
     // Array to store all footwork patterns
     const arrayOfFootwork = useRef({
@@ -894,131 +873,6 @@ export default function Layout3D(props) {
      */
 
     /**
-     * Given Dimensions of Canvas (Or Precisely of Badminton Court)
-     * Find MidpointX and MidPointY
-     * @returns none
-     * @updates {canvas, mode, refLineX, refLineY, dims}
-     */
-
-    const findMidOfCanvas = () => {
-        setShowRefLines(!showRefLines);
-        // console.log(showRefLines)
-        let midX = parseInt(dims.boxW / 2);
-        let midY = parseInt(dims.boxH / 2);
-        // console.log(dims, midX, midY)
-
-        // Create 2 lines that give estimate of reference points of court
-        var verticalLine = new fabric.Line([0, midY, dims.boxW, midY], {
-            selectable: false,
-            fill: "transparent",
-            stroke: "red",
-            strokeWidth: 5,
-        });
-        var horizontalLine = new fabric.Line([midX, 0, midX, dims.boxH], {
-            selectable: false,
-            fill: "transparent",
-            stroke: "red",
-            strokeWidth: 5,
-        });
-        if (showRefLines) {
-            setMode("Check");
-            setRefLineX(horizontalLine);
-            setRefLineY(verticalLine);
-            canvas.add(horizontalLine);
-            canvas.add(verticalLine);
-        } else {
-            setMode("none");
-            canvas.remove(refLineX);
-            canvas.remove(refLineY);
-        }
-    };
-
-    /**
-     *
-     * @param {number} numRows <Number of Rows to Divided into>
-     * @param {number} numColumns <Number of Columns to Divided into>
-     * @returns none
-     * @updates {gridLines.numColumns, gridLines.numRows, gridLineRefs}
-     * @todo Last 2 lines not yet visible => Done
-     */
-
-    const initGridLines = (numRows, numColumns) => {
-        if (gridLineRefs.length > 0) {
-            for (let i = 0; i < gridLineRefs.current.length; i++) {
-                canvas.remove(gridLineRefs.current[i]);
-                console.log("removed", i);
-            }
-        }
-        gridLineRefs.current = []
-        console.log("REFS FLUSHED", gridLineRefs.current.length)
-        gridLines.current.numRows = numRows
-        gridLines.current.numColumns = numColumns
-
-        let incrementValueX = (dims.boxW - 6) / numRows;
-        let incrementValueY = (dims.boxH - 6) / numColumns;
-
-        // Get Dimensions for each Grid Box
-
-        // for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
-        //     for (let j = 3; j <= dims.boxH; j = j + incrementValueY) {
-        //         console.log(i, j, dims.boxW, dims.boxH)
-        //     }
-        // }
-
-        console.log(gridLines.current.numColumns, gridLines.current.numRows);
-
-        for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
-            let line = new fabric.Line([i, 0, i, dims.boxH], {
-                selectable: false,
-                stroke: "#ffaa99",
-                strokeWidth: 3,
-                strokeDashArray: [15, 15],
-            });
-            console.log(i);
-            gridLineRefs.current.push(line);
-        }
-
-        for (let j = 3; j <= dims.boxH; j = j + incrementValueY) {
-            let line = new fabric.Line([0, j, dims.boxW, j], {
-                selectable: false,
-                stroke: "#ffaa99",
-                strokeWidth: 3,
-                strokeDashArray: [15, 15],
-            });
-            gridLineRefs.current.push(line);
-        }
-    };
-
-    /**
-     * @param {number} numRows <Number of Rows to Divided into>
-     * @param {number} numColumns <Number of Columns to Divided into>
-     * @returns none
-     * @updates {gridLines.show, canvas}
-     */
-
-    // Show Gridlines (Given N*M grid size)
-    const showGrids = () => {
-        setMode("Grids");
-
-        gridLines.current.show = !gridLines.current.show
-
-        // console.log(gridLines)
-
-        if (gridLines.current.show) {
-            initGridLines(gridLines.current.numRows, gridLines.current.numColumns);
-            for (let i = 0; i < gridLineRefs.current.length; i++) {
-                // console.log(gridLineRefs[i])
-                canvas.add(gridLineRefs.current[i]);
-            }
-        } else {
-            setMode("none");
-            for (let i = 0; i < gridLineRefs.current.length; i++) {
-                canvas.remove(gridLineRefs.current[i]);
-            }
-        }
-    };
-
-    /**
      * Checks Value given and returns in which half
      * the value resides vertically
      * @param {number} YValue <Height of Canvas>
@@ -1689,7 +1543,7 @@ export default function Layout3D(props) {
                     ].shots[lastActiveAnimation + 1].y,
                 },
                 {
-                    duration: 500,
+                    duration: 1000,
                     onChange: canvas.renderAll.bind(canvas),
                     onComplete: () => {
                         console.log(
@@ -1801,7 +1655,7 @@ export default function Layout3D(props) {
                 console.log(i);
                 setTimeout(() => {
                     drawOneRallyLine(shuttleAnimationObject.current);
-                }, waitFlag * 500);
+                }, waitFlag * 1000);
                 waitFlag++;
             }
         });
@@ -1859,7 +1713,7 @@ export default function Layout3D(props) {
                     ].movements[lastActiveAnimation + 1].y,
                 },
                 {
-                    duration: 500,
+                    duration: 2000,
                     onChange: canvas.renderAll.bind(canvas),
                     onComplete: () => {
                         console.log(
@@ -1989,7 +1843,7 @@ export default function Layout3D(props) {
                     console.log(waitFlag);
                     setTimeout(() => {
                         drawOneFootworkLine(footworkAnimationObject.current);
-                    }, waitFlag * 500);
+                    }, waitFlag * 2000);
                     waitFlag++;
                 }
             });
@@ -2181,24 +2035,6 @@ export default function Layout3D(props) {
             </chakra.div>
         );
     };
-
-    /**
-     * Simulation Menu consists of Controls for
-     * Simulation of rallies
-     */
-
-    const simulationRefs = [
-        {
-            name: "Check",
-            icon: <GiMagnifyingGlass />,
-            func: findMidOfCanvas,
-        },
-        {
-            name: "Grids",
-            icon: <BiGridSmall />,
-            func: showGrids,
-        },
-    ];
 
     /**
      * Menu for showing Simulation Modes
@@ -2524,42 +2360,6 @@ export default function Layout3D(props) {
                 </Box>
 
                 <Box w={"3vw"}>
-                    <Box display={["none", "flex"]}>
-                        <SimpleGrid columns={1} overflowY="auto" overflow="hidden">
-                            {simulationRefs.map((item, idx) => {
-                                return (
-                                    <Box w={"100%"} >
-                                        <Tooltip label={item.name} key={idx}>
-                                            <Button
-                                                _hover={() => { }}
-                                                variant="ghost"
-                                                borderRadius={0}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                        {idx === simulationRefs.length - 1 ? (
-                                            <Divider
-                                                my={5}
-                                                w={"1%"}
-                                            // borderColor="blue.400"
-                                            // borderWidth="2px"
-                                            />
-                                        ) : null}
-                                    </Box>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
                     <Box display={["none", "flex"]} alignContent="center">
                         <SimpleGrid
                             flexGrow={1}
@@ -2668,55 +2468,9 @@ export default function Layout3D(props) {
                 </Box>
 
                 <Box display={["none", "flex"]} w={"20vw"} m={"2vw"}>
-                    <VStack align={"flex-start"}>
-                        <Grid templateColumns="repeat(10, 1fr)" gap={1}>
-                            <GridItem colSpan={4}>
-                                <InputGroup>
-                                    <InputLeftAddon children={"Rows"} />
-                                    <Input
-                                        value={gridLines.current.numRows}
-                                        type="number"
-                                        name="x"
-                                        size="md"
-                                        onChange={(e) => {
-                                            gridLines.current.numRows = parseInt(e.target.value)
-                                            forceUpdate()
-                                        }}
-                                    />
-                                </InputGroup>
-                            </GridItem>
-                            <GridItem colSpan={4}>
-                                <InputGroup>
-                                    <InputLeftAddon children={"Cols"} />
-                                    <Input
-                                        value={gridLines.current.numColumns}
-                                        type="number"
-                                        name="y"
-                                        size="md"
-                                        onChange={(e) => {
-                                            gridLines.current.numColumns = parseInt(e.target.value)
-                                            forceUpdate()
-                                        }}
-                                    />
-
-                                </InputGroup>
-                            </GridItem>
-                            <GridItem colSpan={2}>
-                                <Tooltip label="Set Grid Lines">
-                                    <Button
-                                        colorScheme="blue"
-                                        w={"100%"}
-                                        onClick={showGrids}
-                                    >
-                                        Set
-                                    </Button>
-                                </Tooltip>
-                            </GridItem>
-                        </Grid>
                         <Box mt={2} w={'100%'}>
                             {setSimulationMenu()}
                         </Box>
-                    </VStack>
                 </Box>
 
                 <Box
