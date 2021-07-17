@@ -13,5 +13,3 @@
     - Optional 5 x 5 Grid set
     - 4 Sub Rallies Set up
     - Footworks for rallies set up
-
-3. 

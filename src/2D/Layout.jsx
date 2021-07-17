@@ -1,7 +1,9 @@
 import "./Layout.css";
-import CourtSVG2 from "./Badminton_Court.svg"
-import Shuttle from "./badminton_shuttle.png";
-import Boot from "./top_view_shoe.png";
+import CourtSVG2 from "../assets/Badminton_Court.svg"
+import Shuttle from "../assets/badminton_shuttle.png";
+import LeftBoot from "../assets/left_boot.png"
+import RightBoot from "../assets/right_boot.png";
+import download from 'downloadjs'
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -16,12 +18,9 @@ import {
     SimpleGrid,
     useColorMode,
     useColorModeValue,
-    Table,
-    Thead,
-    Tbody,
     VStack,
-    Tr,
-    Td,
+    InputGroup,
+    InputLeftAddon,
     useDisclosure,
     OrderedList,
     Modal,
@@ -78,20 +77,21 @@ import {
     BsPlayFill,
     BsPauseFill,
     BiUndo,
-    GrClearOption,
+    AiOutlineClear,
     MdDelete,
     BiSave,
     AiOutlineBgColors,
-    VscSymbolProperty
+    VscSymbolProperty,
+    AiOutlineReload,
+    BsSun,
+    BsMoon
 } from "react-icons/all";
 
 // import { SketchPicker, ChromePicker } from "react-color";
 
-import { rallyColors, footworkColors } from "../Vars/Colors";
-
 // Layout Function has Layout of Court as well as controls
 
-export default function Layout() {
+export default function Layout2D() {
     // Color Mode State Variable
     const { colorMode, toggleColorMode } = useColorMode();
 
@@ -137,13 +137,6 @@ export default function Layout() {
 
     const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
-    // State Variable to store Shape Properties
-    const shapeProps = useRef({
-        fill: null,
-        borderColor: null,
-        borderWidth: null,
-    });
-
     /**
      * Simulation Related State Variables
      */
@@ -168,14 +161,14 @@ export default function Layout() {
     const rallyOrFootworkName = useRef(null);
 
     // Store Gridlines and their values
-    const [gridLines, setGridlines] = useState({
+    const gridLines = useRef({
         show: true,
         numRows: 1,
         numColumns: 1,
     });
 
     // Store Gridline references
-    const [gridLineRefs, setGridLineRefs] = useState([]);
+    const gridLineRefs = useRef([]);
 
     // Array to store all footwork patterns
     const arrayOfFootwork = useRef({
@@ -192,8 +185,14 @@ export default function Layout() {
     // Run animation flag
     const runFlag = useRef(false);
 
-    // Animation Object
-    const animationObject = useRef(null);
+    // Shuttle Animation Object
+    const shuttleAnimationObject = useRef(null);
+
+    // Footwork Animaton Object
+    const rightFootworkAnimationObject = useRef(null);
+    const leftFootworkAnimationObject = useRef(null);
+    const footworkAnimationObject = useRef(null);
+
 
     /**
      * Initialize Canvas every time reload happens
@@ -723,14 +722,8 @@ export default function Layout() {
         // SVG
 
         console.log(canvas.toSVG())
-        const element = document.createElement("temporary_element_whose_name_nobody_will");
         const file = new Blob([canvas.toSVG()], { type: 'image/svg+xml;charset=utf-8' });
-        element.href = URL.createObjectURL(file);
-        element.download = "canvas.svg";
-        document.body.appendChild(element); // Required for this to work in FireFox
-        console.log(element.href)
-        element.click();
-        element.remove()
+        download(URL.createObjectURL(file), "Canvas.svg")
     }
 
     /**
@@ -848,8 +841,23 @@ export default function Layout() {
             func: deleteItem,
         },
         {
+            name: "Reload Canvas",
+            icon: <AiOutlineReload />,
+            func: () => {
+                // Get all Objects and Remove them one by one
+                let objects = canvas.getObjects();
+                for (var i = 0; i < objects.length; i++) {
+                    canvas.remove(objects[i]);
+                }
+                canvas.renderAll();
+
+                // Remove everything from CanvasObjects array also
+                canvasObjects.current = [];
+            }
+        },
+        {
             name: "Clear History",
-            icon: <GrClearOption />,
+            icon: <AiOutlineClear />,
             func: () => {
                 if (
                     window.confirm("Do you want clear canvas? It cannot be recovered.")
@@ -857,6 +865,10 @@ export default function Layout() {
                     clearCanvas()
                 }
             },
+        }, {
+            name: colorMode === "light" ? "Dark Mode" : "Light Mode",
+            icon: colorMode === "light" ? <BsMoon /> : <BsSun />,
+            func: toggleColorMode,
         },
     ];
 
@@ -916,16 +928,15 @@ export default function Layout() {
 
     const initGridLines = (numRows, numColumns) => {
         if (gridLineRefs.length > 0) {
-            for (let i = 0; i < gridLineRefs.length; i++) {
-                canvas.remove(gridLineRefs[i]);
-                console.log("removed", gridLineRefs[i]);
+            for (let i = 0; i < gridLineRefs.current.length; i++) {
+                canvas.remove(gridLineRefs.current[i]);
+                console.log("removed", i);
             }
         }
-        setGridLineRefs([]);
-        setGridlines({
-            numColumns: numColumns,
-            numRows: numRows,
-        });
+        gridLineRefs.current = []
+        console.log("REFS FLUSHED", gridLineRefs.current.length)
+        gridLines.current.numRows = numRows
+        gridLines.current.numColumns = numColumns
 
         let incrementValueX = (dims.boxW - 6) / numRows;
         let incrementValueY = (dims.boxH - 6) / numColumns;
@@ -938,29 +949,27 @@ export default function Layout() {
         //     }
         // }
 
-        console.log(gridLines.numColumns, gridLines.numRows);
+        console.log(gridLines.current.numColumns, gridLines.current.numRows);
 
         for (let i = 3; i <= dims.boxW; i = i + incrementValueX) {
             let line = new fabric.Line([i, 0, i, dims.boxH], {
                 selectable: false,
-                stroke: "#ffaa99",
+                stroke: "white",
                 strokeWidth: 3,
-                strokeDashArray: [15, 15],
+                strokeDashArray: [5, 5],
             });
             console.log(i);
-            gridLineRefs.push(line);
-            setGridLineRefs([...gridLineRefs]);
+            gridLineRefs.current.push(line);
         }
 
         for (let j = 3; j <= dims.boxH; j = j + incrementValueY) {
             let line = new fabric.Line([0, j, dims.boxW, j], {
                 selectable: false,
-                stroke: "#ffaa99",
+                stroke: "white",
                 strokeWidth: 3,
-                strokeDashArray: [15, 15],
+                strokeDashArray: [5, 5],
             });
-            gridLineRefs.push(line);
-            setGridLineRefs([...gridLineRefs]);
+            gridLineRefs.current.push(line);
         }
     };
 
@@ -974,23 +983,21 @@ export default function Layout() {
     // Show Gridlines (Given N*M grid size)
     const showGrids = () => {
         setMode("Grids");
-        initGridLines(gridLines.numRows, gridLines.numColumns);
 
-        setGridlines({
-            show: !gridLines.show,
-        });
+        gridLines.current.show = !gridLines.current.show
 
         // console.log(gridLines)
 
-        if (gridLines.show) {
-            for (let i = 0; i < gridLineRefs.length; i++) {
+        if (gridLines.current.show) {
+            initGridLines(gridLines.current.numRows, gridLines.current.numColumns);
+            for (let i = 0; i < gridLineRefs.current.length; i++) {
                 // console.log(gridLineRefs[i])
-                canvas.add(gridLineRefs[i]);
+                canvas.add(gridLineRefs.current[i]);
             }
         } else {
             setMode("none");
-            for (let i = 0; i < gridLineRefs.length; i++) {
-                canvas.remove(gridLineRefs[i]);
+            for (let i = 0; i < gridLineRefs.current.length; i++) {
+                canvas.remove(gridLineRefs.current[i]);
             }
         }
     };
@@ -1079,6 +1086,7 @@ export default function Layout() {
 
     const constructRally = () => {
         clearAllRallyObjects();
+        clearAllFootworkObjects()
         if (showAllRallies.current) {
             drawRallyObjectsOnCanvas(false);
         } else {
@@ -1363,6 +1371,7 @@ export default function Layout() {
 
     const constructFootwork = () => {
         clearAllFootworkObjects();
+        clearAllRallyObjects()
         if (showAllFootworks.current) {
             drawFootworkObjectsOnCanvas(false);
         } else {
@@ -1584,7 +1593,6 @@ export default function Layout() {
         if (x === undefined) {
             x = 0;
         }
-        console.log("ARLen" + x);
 
         arrayOfRallies.current.rallies.push({
             name: rallyOrFootworkName.current.value,
@@ -1706,7 +1714,7 @@ export default function Layout() {
                             ].shots.length -
                             2
                         ) {
-                            animationObject.current = null;
+                            shuttleAnimationObject.current = null;
                             canvas.remove(img);
                         }
                     },
@@ -1724,6 +1732,12 @@ export default function Layout() {
      */
 
     const runCurrentShuttleAnimation = () => {
+        if (arrayOfRallies.current.rallies[
+            arrayOfRallies.current.currentActiveIndex
+        ].shots === undefined) {
+            window.alert("Please add rally positions to run simulation");
+            return
+        }
         if (
             isNaN(
                 arrayOfRallies.current.rallies[
@@ -1733,7 +1747,7 @@ export default function Layout() {
             arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex]
                 .shots.length <= 0
         ) {
-            window.alert("Please add rally/footwork positions to run simulation");
+            window.alert("Please add rally positions to run simulation");
             console.log(
                 arrayOfRallies.current.rallies[
                 arrayOfRallies.current.currentActiveIndex
@@ -1746,16 +1760,16 @@ export default function Layout() {
                 .shots.length === 1
         ) {
             window.alert(
-                "Only 1 shot/footwork has been added, please add more than 1"
+                "Only 1 shot has been added, please add more than 1"
             );
             return;
         }
 
         new fabric.Image.fromURL(Shuttle, (img) => {
-            if (animationObject.current === null) {
-                animationObject.current = img;
-                canvas.add(animationObject.current);
-                animationObject.current.scaleToWidth(40);
+            if (shuttleAnimationObject.current === null) {
+                shuttleAnimationObject.current = img;
+                canvas.add(shuttleAnimationObject.current);
+                shuttleAnimationObject.current.scaleToWidth(40);
             }
 
             if (
@@ -1794,7 +1808,7 @@ export default function Layout() {
                 }
                 console.log(i);
                 setTimeout(() => {
-                    drawOneRallyLine(animationObject.current);
+                    drawOneRallyLine(shuttleAnimationObject.current);
                 }, waitFlag * 4000);
                 waitFlag++;
             }
@@ -1810,41 +1824,30 @@ export default function Layout() {
 
     const drawOneFootworkLine = (img) => {
         let lastActiveAnimation =
-            arrayOfFootwork.current.footworks[
-                arrayOfFootwork.current.currentActiveIndex
-            ].lastActiveAnimation;
+            arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex]
+                .lastActiveAnimation;
         if (lastActiveAnimation === -1) {
             lastActiveAnimation = 0;
         } else if (
             lastActiveAnimation ===
-            arrayOfFootwork.current.footworks[
-                arrayOfFootwork.current.currentActiveIndex
-            ].movements.length -
+            arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex]
+                .movements.length -
             1
         ) {
             lastActiveAnimation = 0;
             return;
+
         }
 
         if (runFlag.current) {
-            let angle =
-                (Math.atan2(
-                    arrayOfFootwork.current.footworks[
-                        arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation].y -
-                    arrayOfFootwork.current.footworks[
-                        arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].y,
-                    arrayOfFootwork.current.footworks[
-                        arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation].x -
-                    arrayOfFootwork.current.footworks[
-                        arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].x
-                ) *
-                    180) /
-                Math.PI +
-                90;
+            let angle
+            if (checkHalfVertical(arrayOfFootwork.current.footworks[
+                arrayOfFootwork.current.currentActiveIndex
+            ].movements[lastActiveAnimation].y) === 1) {
+                angle = 180
+            } else {
+                angle = 0
+            }
             img.set({
                 left: arrayOfFootwork.current.footworks[
                     arrayOfFootwork.current.currentActiveIndex
@@ -1854,45 +1857,39 @@ export default function Layout() {
                 ].movements[lastActiveAnimation].y,
                 angle: angle,
             });
-            arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].lastActiveAnimationRef =
-                img.animate(
-                    {
-                        left: arrayOfFootwork.current.footworks[
-                            arrayOfFootwork.current.currentActiveIndex
-                        ].movements[lastActiveAnimation + 1].x,
-                        top: arrayOfFootwork.current.footworks[
-                            arrayOfFootwork.current.currentActiveIndex
-                        ].movements[lastActiveAnimation + 1].y,
+            img.animate(
+                {
+                    left: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation + 1].x,
+                    top: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation + 1].y,
+                },
+                {
+                    duration: 4000,
+                    onChange: canvas.renderAll.bind(canvas),
+                    onComplete: () => {
+                        console.log(
+                            lastActiveAnimation,
+                            " : ",
+                            arrayOfFootwork.current.footworks[
+                                arrayOfFootwork.current.currentActiveIndex
+                            ].movements.length - 2
+                        );
+                        if (
+                            lastActiveAnimation ===
+                            arrayOfFootwork.current.footworks[
+                                arrayOfFootwork.current.currentActiveIndex
+                            ].movements.length -
+                            2
+                        ) {
+                            rightFootworkAnimationObject.current = null;
+                            canvas.remove(img);
+                        }
                     },
-                    {
-                        duration: 4000,
-                        onChange: () => {
-                            if (!runFlag.current) {
-                                img.pause()
-                            }
-                            canvas.renderAll.bind(canvas)
-                        },
-                        onComplete: () => {
-                            console.log(
-                                lastActiveAnimation,
-                                " : ",
-                                arrayOfFootwork.current.footworks[
-                                    arrayOfFootwork.current.currentActiveIndex
-                                ].movements.length - 2
-                            );
-                            if (
-                                lastActiveAnimation ===
-                                arrayOfFootwork.current.footworks[
-                                    arrayOfFootwork.current.currentActiveIndex
-                                ].movements.length -
-                                2
-                            ) {
-                                animationObject.current = null;
-                                canvas.remove(img);
-                            }
-                        },
-                    }
-                );
+                }
+            );
             arrayOfFootwork.current.footworks[
                 arrayOfFootwork.current.currentActiveIndex
             ].lastActiveAnimation = lastActiveAnimation + 1;
@@ -1905,6 +1902,12 @@ export default function Layout() {
      */
 
     const runCurrentFootworkAnimation = () => {
+        if (arrayOfFootwork.current.footworks[
+            arrayOfFootwork.current.currentActiveIndex
+        ] === undefined) {
+            window.alert("Please add footwork positions to run simulation");
+            return
+        }
         if (
             isNaN(
                 arrayOfFootwork.current.footworks[
@@ -1915,7 +1918,7 @@ export default function Layout() {
                 arrayOfFootwork.current.currentActiveIndex
             ].movements.length <= 0
         ) {
-            window.alert("Please add rally/footwork positions to run simulation");
+            window.alert("Please add footwork positions to run simulation");
             console.log(
                 arrayOfFootwork.current.footworks[
                 arrayOfFootwork.current.currentActiveIndex
@@ -1929,7 +1932,7 @@ export default function Layout() {
             ].movements.length === 1
         ) {
             window.alert(
-                "Only 1 shot/footwork has been added, please add more than 1"
+                "Only 1 footwork has been added, please add more than 1"
             );
             return;
         }
@@ -1938,50 +1941,67 @@ export default function Layout() {
             runFlag.current = true
         }
 
-        new fabric.Image.fromURL(Boot, (img) => {
-            if (animationObject.current === null) {
-                animationObject.current = img;
-                canvas.add(animationObject.current);
-                animationObject.current.scaleToWidth(40);
-            }
+        new fabric.Image.fromURL(RightBoot, (right) => {
+            new fabric.Image.fromURL(LeftBoot, (left) => {
+                if (rightFootworkAnimationObject.current === null || leftFootworkAnimationObject.current === null) {
+                    rightFootworkAnimationObject.current = right;
+                    leftFootworkAnimationObject.current = left;
+                    rightFootworkAnimationObject.current.set({
+                        right: 30, selectable: true
+                    })
+                    rightFootworkAnimationObject.current.scaleToWidth(40)
+                    leftFootworkAnimationObject.current.set({
+                        left: -30, selectable: true
+                    })
+                    rightFootworkAnimationObject.current.scaleToWidth(40)
+                    leftFootworkAnimationObject.current.scaleToWidth(40)
 
-            if (
-                arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].lastActiveAnimation ===
-                arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements.length -
-                1
-            ) {
-                arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].lastActiveAnimation = 0;
-            }
+                    footworkAnimationObject.current = new fabric.Group([left, right])
 
-            for (
-                let i =
+                    footworkAnimationObject.current.add(rightFootworkAnimationObject.current);
+                    footworkAnimationObject.current.add(leftFootworkAnimationObject.current);
+                    // footworkAnimationObject.current.scaleToWidth(40)
+                    canvas.add(footworkAnimationObject.current)
+                }
+
+                if (
                     arrayOfFootwork.current.footworks[
                         arrayOfFootwork.current.currentActiveIndex
-                    ].lastActiveAnimation,
-                waitFlag = 0;
-                i <
-                arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements.length -
-                1;
-                i++
-            ) {
-                if (i === -1) {
-                    continue;
+                    ].lastActiveAnimation ===
+                    arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements.length -
+                    1
+                ) {
+                    arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].lastActiveAnimation = 0;
                 }
-                console.log(waitFlag);
-                setTimeout(() => {
-                    drawOneFootworkLine(animationObject.current);
-                }, waitFlag * 4000);
-                waitFlag++;
-            }
-        });
+
+                for (
+                    let i =
+                        arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].lastActiveAnimation,
+                    waitFlag = 0;
+                    i <
+                    arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements.length -
+                    1;
+                    i++
+                ) {
+                    if (i === -1) {
+                        continue;
+                    }
+                    console.log(waitFlag);
+                    setTimeout(() => {
+                        drawOneFootworkLine(footworkAnimationObject.current);
+                    }, waitFlag * 4000);
+                    waitFlag++;
+                }
+            });
+        })
     };
 
     /**
@@ -1990,7 +2010,7 @@ export default function Layout() {
      * @function {addRally, addFunction}
      */
 
-    const setRightMenu = () => {
+    const setSimulationMenu = () => {
         let ralliesOrFootwork = null;
         let l = null;
         if (mode === "Rally") {
@@ -2377,11 +2397,11 @@ export default function Layout() {
         let property = obj.prop
         return (
             <Slider aria-label="slider-ex-1" min={1} max={10} step={1} isDisabled={currentObject === null} defaultValue={1}
-            onChangeEnd={(val) => {
-                console.log(val)
-                currentObject.set(property, val)
-                canvas.renderAll()
-            }}>
+                onChangeEnd={(val) => {
+                    console.log(val)
+                    currentObject.set(property, val)
+                    canvas.renderAll()
+                }}>
                 <SliderTrack>
                     <SliderFilledTrack bg='blue.400' />
                 </SliderTrack>
@@ -2657,120 +2677,52 @@ export default function Layout() {
 
                 <Box display={["none", "flex"]} w={"20vw"} m={"2vw"}>
                     <VStack align={"flex-start"}>
-                        <Table variant="simple" maxH={"10vh"} overflowY="auto" size="xsm">
-                            <Thead>
-                                <Tr>
-                                    <Td>{"Object"}</Td>
-                                    <Td>{"Properties"}</Td>
-                                </Tr>
-                            </Thead>
-                            <Tbody>
-                                {leftPanel.map((obj, index) => {
-                                    return (
-                                        <Tr >
-                                            <Td key={index}>
-                                                <Text>{obj.name}</Text>
-                                            </Td>
-                                            <Td>
-                                                <Input
-                                                    disabled={currentObject == null ? true : false}
-                                                    defaultValue={
-                                                        currentObject == null
-                                                            ? ""
-                                                            : currentObject.get(obj.prop)
-                                                    }
-                                                    onChange={(e) => {
-                                                        if (currentObject !== null) {
-                                                            console.log(obj.prop, e.target.value);
-                                                            let property = obj.prop;
-                                                            let val = e.target.value;
-                                                            if (val === "") {
-                                                                return;
-                                                            }
-                                                            if (property === "strokeWidth") {
-                                                                val = parseInt(val);
-                                                            }
-                                                            currentObject.set(property, val);
-                                                            currentObject.set({
-                                                                selectable: true,
-                                                            });
-                                                            canvas.renderAll();
-                                                        }
-                                                    }}
-                                                />
-                                            </Td>
-                                        </Tr>
-                                    );
-                                })}
-                            </Tbody>
-                        </Table>
-                        <Box>
-                            <Input
-                                value={gridLines.numRows}
-                                type="number"
-                                name="x"
-                                size="md"
-                                mt={1}
-                                onChange={(e) => {
-                                    setGridlines((prevGridLines) => ({
-                                        ...prevGridLines,
-                                        numRows: parseInt(e.target.value),
-                                    }));
-                                }}
-                            />
-                            <Input
-                                value={gridLines.numColumns}
-                                type="number"
-                                name="y"
-                                size="md"
-                                mt={1}
-                                onChange={(e) => {
-                                    setGridlines((prevGridLines) => ({
-                                        ...prevGridLines,
-                                        numColumns: parseInt(e.target.value),
-                                    }));
-                                }}
-                            />
-                        </Box>
-                        <SimpleGrid columns={1} w={'100%'}>
-                            <Button
-                                colorScheme="blue"
-                                w={"100%"}
-                                onClick={showGrids}
-                                mb={1}
-                            >
-                                Set Grid Lines
-                            </Button>
-                            <Button
-                                w={"100%"}
-                                mb={1}
-                                colorScheme="red"
-                                onClick={() => {
-                                    // Get all Objects and Remove them one by one
-                                    let objects = canvas.getObjects();
-                                    for (var i = 0; i < objects.length; i++) {
-                                        canvas.remove(objects[i]);
-                                    }
-                                    canvas.renderAll();
+                        <Grid templateColumns="repeat(10, 1fr)" gap={1}>
+                            <GridItem colSpan={4}>
+                                <InputGroup>
+                                    <InputLeftAddon children={"Rows"} />
+                                    <Input
+                                        value={gridLines.current.numRows}
+                                        type="number"
+                                        name="x"
+                                        size="md"
+                                        onChange={(e) => {
+                                            gridLines.current.numRows = parseInt(e.target.value)
+                                            forceUpdate()
+                                        }}
+                                    />
+                                </InputGroup>
+                            </GridItem>
+                            <GridItem colSpan={4}>
+                                <InputGroup>
+                                    <InputLeftAddon children={"Cols"} />
+                                    <Input
+                                        value={gridLines.current.numColumns}
+                                        type="number"
+                                        name="y"
+                                        size="md"
+                                        onChange={(e) => {
+                                            gridLines.current.numColumns = parseInt(e.target.value)
+                                            forceUpdate()
+                                        }}
+                                    />
 
-                                    // Remove everything from CanvasObjects array also
-                                    canvasObjects.current = [];
-                                }}
-                            >
-                                Reload Canvas
-                            </Button>
-                            <Button
-                                w={"100%"}
-                                mb={1}
-                                variant="outline"
-                                colorScheme="twitter"
-                                onClick={toggleColorMode}
-                            >
-                                Toggle {colorMode === "light" ? "Dark" : "Light"}
-                            </Button>
-                        </SimpleGrid>
+                                </InputGroup>
+                            </GridItem>
+                            <GridItem colSpan={2}>
+                                <Tooltip label="Set Grid Lines">
+                                    <Button
+                                        colorScheme="blue"
+                                        w={"100%"}
+                                        onClick={showGrids}
+                                    >
+                                        Set
+                                    </Button>
+                                </Tooltip>
+                            </GridItem>
+                        </Grid>
                         <Box mt={2} w={'100%'}>
-                            {setRightMenu()}
+                            {setSimulationMenu()}
                         </Box>
                     </VStack>
                 </Box>
