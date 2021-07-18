@@ -84,7 +84,8 @@ import {
     VscSymbolProperty,
     AiOutlineReload,
     BsSun,
-    BsMoon
+    BsMoon,
+    GiRunningShoe
 } from "react-icons/all";
 
 // import { SketchPicker, ChromePicker } from "react-color";
@@ -108,6 +109,9 @@ export default function Layout2D() {
         boxW: 0.1,
         boxH: 0.1,
     });
+
+    // Canvas Title
+    const canvasTitle = useRef("Untitled")
 
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null);
@@ -206,6 +210,10 @@ export default function Layout2D() {
             width: dims.boxW,
         });
         fabric.loadSVGFromURL(CourtSVG2, (objects, options) => {
+            fabric.Object.prototype.transparentCorners = false
+            fabric.Object.prototype.cornerColor = '#00008B'
+            fabric.Object.prototype.cornerStyle = 'circle'
+            fabric.Object.prototype.borderColor = 'red'
             var obj = fabric.util.groupSVGElements(objects, options);
             obj.set({
                 selectable: false,
@@ -213,7 +221,7 @@ export default function Layout2D() {
                 scaleY: canvas.height / obj.height,
             })
             canvas.add(obj)
-            canvas.setBackgroundColor('#00bf00')
+            canvas.setBackgroundColor('#68D391')
         })
         return canvas;
     };
@@ -707,6 +715,104 @@ export default function Layout2D() {
      * @returns None
      */
 
+    /**
+     * Adds a Shuttlecock Object to Canvas
+     * Uses current X and Y values to place the shuttlecock image
+     * @updates {canvas}
+     * @returns None
+     */
+
+    const addShuttleObject = () => {
+        clearMouseListeners();
+        canvas.isDrawingMode = false;
+        // canvas.__eventListeners = {}
+        setMode("Shuttle Object");
+
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false,
+            });
+        }
+
+        canvas.on("mouse:down", (event) => {
+            startX = canvas.getPointer(event.e).x;
+            startY = canvas.getPointer(event.e).y;
+            new fabric.Image.fromURL(Shuttle, (img) => {
+                img.set({
+                    left: startX,
+                    top: startY
+                })
+                img.scaleToWidth(40)
+                canvas.add(img);
+                addObjectToArray(img);
+            })
+
+        });
+
+        canvas.on("mouse:up", () => {
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true,
+                });
+            }
+
+            setMode("none");
+            clearMouseListeners();
+        });
+    }
+
+    /**
+     * Adds a Shoe Object to Canvas
+     * Uses current X and Y values to place the shuttlecock image
+     * @updates {canvas}
+     * @returns None
+     */
+
+    const addShoeObject = (isRightBoot) => {
+        clearMouseListeners();
+        canvas.isDrawingMode = false;
+        // canvas.__eventListeners = {}
+        setMode("Shuttle Object");
+
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false,
+            });
+        }
+
+        canvas.on("mouse:down", (event) => {
+            startX = canvas.getPointer(event.e).x;
+            startY = canvas.getPointer(event.e).y;
+            new fabric.Image.fromURL(RightBoot, (img) => {
+                img.set({
+                    left: startX,
+                    top: startY
+                })
+                img.scaleToWidth(40)
+                if (!isRightBoot) {
+                    img.set({
+                        flipX: true
+                    })  
+                }
+                canvas.add(img);
+                addObjectToArray(img);
+            })
+
+        });
+
+        canvas.on("mouse:up", () => {
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true,
+                });
+            }
+
+            setMode("none");
+            clearMouseListeners();
+        });
+    }
+
+
     const saveCanvas = () => {
 
         // JSON
@@ -723,7 +829,7 @@ export default function Layout2D() {
 
         console.log(canvas.toSVG())
         const file = new Blob([canvas.toSVG()], { type: 'image/svg+xml;charset=utf-8' });
-        download(URL.createObjectURL(file), "Canvas.svg")
+        download(URL.createObjectURL(file), canvasTitle.current + ".svg")
     }
 
     /**
@@ -738,6 +844,12 @@ export default function Layout2D() {
         let activeObject = canvas.getActiveObject();
 
         if (activeObject) {
+            console.log("Removing object", activeObject, "All : ", canvasObjects)
+            for (let i = 0;i < canvasObjects.current.length; i++) {
+                if (canvasObjects.current[i] === activeObject) {
+                    canvasObjects.current.splice(i)
+                }
+            }
             canvas.remove(activeObject);
         }
     };
@@ -765,10 +877,10 @@ export default function Layout2D() {
      */
 
     const selectCanvasBackground = () => {
-        const list = ["#00bf00", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
+        const list = ["#68D391", "#FAF089", "#eedd82", "#82cda8", "#E9D8FD", "#FBD38D", "#81E6D9", "#90cdf4", "#E2E8F0", "#FC8181", "#48BB78", "#F0FFF4", "#90cdf4", "#F687B3"]
         return (
             list.map((item) => (
-                <Button bg={item} value={item} m="1" borderRadius={'100%'} size='sm' onClick={
+                <Button bg={item} value={item} m="1" border='solid' borderWidth='thin' borderRadius={'100%'} size='sm' onClick={
                     () => {
                         canvas.setBackgroundColor(item)
                         canvas.renderAll()
@@ -823,6 +935,21 @@ export default function Layout2D() {
             icon: <BiText />,
             func: addText,
         },
+        {
+            name: "Shuttle Object",
+            icon: <GiShuttlecock/>,
+            func: addShuttleObject,
+        },
+        {
+            name: "Right Boot",
+            icon: <GiRunningShoe/>,
+            func: () => addShoeObject(true),
+        },
+        {
+            name: "Left Boot",
+            icon: <GiRunningShoe/>,
+            func: () => addShoeObject(false),
+        }
     ];
 
     /**
@@ -1678,48 +1805,101 @@ export default function Layout2D() {
                     180) /
                 Math.PI +
                 90;
-            img.set({
-                left: arrayOfRallies.current.rallies[
-                    arrayOfRallies.current.currentActiveIndex
-                ].shots[lastActiveAnimation].x,
-                top: arrayOfRallies.current.rallies[
-                    arrayOfRallies.current.currentActiveIndex
-                ].shots[lastActiveAnimation].y,
-                angle: angle,
-            });
-            img.animate(
-                {
+
+            let YVal = checkHalfVertical(arrayOfRallies.current.rallies[
+                arrayOfRallies.current.currentActiveIndex
+            ].shots[lastActiveAnimation].y)
+
+            if (YVal === 1) {
+                img.set({
                     left: arrayOfRallies.current.rallies[
                         arrayOfRallies.current.currentActiveIndex
-                    ].shots[lastActiveAnimation + 1].x,
+                    ].shots[lastActiveAnimation].x - 20,
                     top: arrayOfRallies.current.rallies[
                         arrayOfRallies.current.currentActiveIndex
-                    ].shots[lastActiveAnimation + 1].y,
-                },
-                {
-                    duration: 4000,
-                    onChange: canvas.renderAll.bind(canvas),
-                    onComplete: () => {
-                        console.log(
-                            lastActiveAnimation,
-                            " : ",
-                            arrayOfRallies.current.rallies[
-                                arrayOfRallies.current.currentActiveIndex
-                            ].shots.length - 2
-                        );
-                        if (
-                            lastActiveAnimation ===
-                            arrayOfRallies.current.rallies[
-                                arrayOfRallies.current.currentActiveIndex
-                            ].shots.length -
-                            2
-                        ) {
-                            shuttleAnimationObject.current = null;
-                            canvas.remove(img);
-                        }
+                    ].shots[lastActiveAnimation].y - 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].x - 20,
+                        top: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].y - 20,
                     },
-                }
-            );
+                    {
+                        duration: 4000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length -
+                                2
+                            ) {
+                                shuttleAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+
+            else {
+                img.set({
+                    left: arrayOfRallies.current.rallies[
+                        arrayOfRallies.current.currentActiveIndex
+                    ].shots[lastActiveAnimation].x + 20,
+                    top: arrayOfRallies.current.rallies[
+                        arrayOfRallies.current.currentActiveIndex
+                    ].shots[lastActiveAnimation].y + 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].x + 20,
+                        top: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].y + 20,
+                    },
+                    {
+                        duration: 4000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length -
+                                2
+                            ) {
+                                shuttleAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+
             arrayOfRallies.current.rallies[
                 arrayOfRallies.current.currentActiveIndex
             ].lastActiveAnimation = lastActiveAnimation + 1;
@@ -1848,48 +2028,100 @@ export default function Layout2D() {
             } else {
                 angle = 0
             }
-            img.set({
-                left: arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements[lastActiveAnimation].x,
-                top: arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements[lastActiveAnimation].y,
-                angle: angle,
-            });
-            img.animate(
-                {
+
+            let YVal = checkHalfVertical(arrayOfFootwork.current.footworks[
+                arrayOfFootwork.current.currentActiveIndex
+            ].movements[lastActiveAnimation].y)
+
+            if (YVal === 1) {
+                img.set({
                     left: arrayOfFootwork.current.footworks[
                         arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].x,
+                    ].movements[lastActiveAnimation].x + 30,
                     top: arrayOfFootwork.current.footworks[
                         arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].y,
-                },
-                {
-                    duration: 4000,
-                    onChange: canvas.renderAll.bind(canvas),
-                    onComplete: () => {
-                        console.log(
-                            lastActiveAnimation,
-                            " : ",
-                            arrayOfFootwork.current.footworks[
-                                arrayOfFootwork.current.currentActiveIndex
-                            ].movements.length - 2
-                        );
-                        if (
-                            lastActiveAnimation ===
-                            arrayOfFootwork.current.footworks[
-                                arrayOfFootwork.current.currentActiveIndex
-                            ].movements.length -
-                            2
-                        ) {
-                            rightFootworkAnimationObject.current = null;
-                            canvas.remove(img);
-                        }
+                    ].movements[lastActiveAnimation].y + 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].x + 30,
+                        top: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].y + 20,
                     },
-                }
-            );
+                    {
+                        duration: 4000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length -
+                                2
+                            ) {
+                                rightFootworkAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+
+            else {
+                img.set({
+                    left: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation].x - 30,
+                    top: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation].y - 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].x - 30,
+                        top: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].y - 20,
+                    },
+                    {
+                        duration: 4000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length -
+                                2
+                            ) {
+                                rightFootworkAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
             arrayOfFootwork.current.footworks[
                 arrayOfFootwork.current.currentActiveIndex
             ].lastActiveAnimation = lastActiveAnimation + 1;
@@ -2262,6 +2494,7 @@ export default function Layout2D() {
             colorScheme: "yellow",
             p: "Pause",
             func: () => {
+                setMode("Pointer")
                 runFlag.current = false
             },
         },
@@ -2370,9 +2603,9 @@ export default function Layout2D() {
      */
 
     const handleButtonProps = (obj) => {
-        const list = ["#00bf00", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
+        const list = ["#68D391", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
         return (
-            list.map((item) => (
+            list.map((item, idx) => (
                 <Button bg={item} value={item} m="1" borderRadius={'100%'} size='sm' onClick={
                     () => {
                         if (currentObject !== null) {
@@ -2423,7 +2656,7 @@ export default function Layout2D() {
                 <Box w={"3vw"} h={dims.boxH}>
                     <Box display={["none", "flex"]}>
                         <SimpleGrid columns={1} overflowY="auto" overflow="hidden">
-                            <Popover size='md' placement='right' colorScheme='cyan' arrowSize={20}>
+                            <Popover size='sm' placement='right' colorScheme='cyan' arrowSize={20}>
                                 <PopoverTrigger>
                                     <Button borderRadius={0}
                                         fontSize={"2xl"}
@@ -2479,7 +2712,7 @@ export default function Layout2D() {
                             flexGrow={1}
                             overflow="hidden"
                         >
-                            <Popover size='md' placement='right' colorScheme='cyan' arrowSize={20}>
+                            <Popover placement='right' colorScheme='cyan' arrowSize={20}>
                                 <PopoverTrigger>
                                     <Button borderRadius={0}
                                         fontSize={"2xl"}
@@ -2677,6 +2910,12 @@ export default function Layout2D() {
 
                 <Box display={["none", "flex"]} w={"20vw"} m={"2vw"}>
                     <VStack align={"flex-start"}>
+                        <Box w={'100%'}>
+                            <Input value={canvasTitle.current} onChange={(e) => {
+                                canvasTitle.current = e.target.value
+                                forceUpdate()
+                            }} />
+                        </Box>
                         <Grid templateColumns="repeat(10, 1fr)" gap={1}>
                             <GridItem colSpan={4}>
                                 <InputGroup>

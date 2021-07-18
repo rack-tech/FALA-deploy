@@ -16,6 +16,7 @@ export default function ButtonComponent(props) {
                 role={'group'}
                 p={4}
                 maxW={'90%'}
+                minH='60vh'
                 w={'full'}
                 bg={useColorModeValue('white', 'gray.800')}
                 boxShadow={'xl'}

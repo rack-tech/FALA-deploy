@@ -1,6 +1,8 @@
 import "./Layout.css";
-import Court3d from "../assets/3d_court.svg"
-import Court3dFlat from "../assets/3d_court_colored_flat.svg"
+import FrontCourt3d from "../assets/3d_court.svg"
+import FrontCourt3dFlat from "../assets/3d_court_colored_flat.svg"
+import SideCourt3d from '../assets/Side_view.svg'
+import SideCourt3dFlat from '../assets/Side_view_flat.svg'
 import Shuttle from "../assets/badminton_shuttle.png";
 import LeftBoot from "../assets/left_boot.png"
 import RightBoot from "../assets/right_boot.png";
@@ -81,10 +83,9 @@ import {
     VscSymbolProperty,
     AiOutlineReload,
     BsSun,
-    BsMoon
+    BsMoon,
+    GiRunningShoe
 } from "react-icons/all";
-
-// import { SketchPicker, ChromePicker } from "react-color";
 
 // Layout Function has Layout of Court as well as controls
 
@@ -105,6 +106,9 @@ export default function Layout3D(props) {
         boxW: 0.1,
         boxH: 0.1,
     });
+
+    // Title for Canvas
+    const canvasTitle = useRef("Untitled")
 
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null);
@@ -181,13 +185,17 @@ export default function Layout3D(props) {
      */
 
     const initCanvas = () => {
+        fabric.Object.prototype.transparentCorners = false
+        fabric.Object.prototype.cornerColor = '#00008B'
+        fabric.Object.prototype.cornerStyle = 'circle'
+        fabric.Object.prototype.borderColor = 'red'
         const canvas = new fabric.Canvas("canvas", {
             height: dims.boxH,
             width: dims.boxW,
         });
-        if (props.flat === false) {
+        if (props.flat === "Front") {
             console.log("Flat : ", props.flat)
-            fabric.loadSVGFromURL(Court3d, (objects, options) => {
+            fabric.loadSVGFromURL(FrontCourt3d, (objects, options) => {
                 var obj = fabric.util.groupSVGElements(objects, options);
                 obj.set({
                     selectable: false,
@@ -197,9 +205,35 @@ export default function Layout3D(props) {
                 canvas.add(obj)
                 canvas.setBackgroundColor('white')
             })
-        } else {
+        } else if (props.flat === "Front_Flat") {
             console.log("Flat : ", props.flat)
-            fabric.loadSVGFromURL(Court3dFlat, (objects, options) => {
+            fabric.loadSVGFromURL(FrontCourt3dFlat, (objects, options) => {
+                var obj = fabric.util.groupSVGElements(objects, options);
+                obj.set({
+                    selectable: false,
+                    scaleX: canvas.width / obj.width,
+                    scaleY: canvas.height / obj.height,
+                })
+                canvas.add(obj)
+                canvas.setBackgroundColor('white')
+            })
+        }
+        else if (props.flat === "Side") {
+            console.log("Flat : ", props.flat)
+            fabric.loadSVGFromURL(SideCourt3d, (objects, options) => {
+                var obj = fabric.util.groupSVGElements(objects, options);
+                obj.set({
+                    selectable: false,
+                    scaleX: canvas.width / obj.width,
+                    scaleY: canvas.height / obj.height,
+                })
+                canvas.add(obj)
+                canvas.setBackgroundColor('white')
+            })
+        }
+        else if (props.flat === "Side_Flat") {
+            console.log("Flat : ", props.flat)
+            fabric.loadSVGFromURL(SideCourt3dFlat, (objects, options) => {
                 var obj = fabric.util.groupSVGElements(objects, options);
                 obj.set({
                     selectable: false,
@@ -698,6 +732,103 @@ export default function Layout3D(props) {
     };
 
     /**
+     * Adds a Shuttlecock Object to Canvas
+     * Uses current X and Y values to place the shuttlecock image
+     * @updates {canvas}
+     * @returns None
+     */
+
+     const addShuttleObject = () => {
+        clearMouseListeners();
+        canvas.isDrawingMode = false;
+        // canvas.__eventListeners = {}
+        setMode("Shuttle Object");
+
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false,
+            });
+        }
+
+        canvas.on("mouse:down", (event) => {
+            startX = canvas.getPointer(event.e).x;
+            startY = canvas.getPointer(event.e).y;
+            new fabric.Image.fromURL(Shuttle, (img) => {
+                img.set({
+                    left: startX,
+                    top: startY
+                })
+                img.scaleToWidth(40)
+                canvas.add(img);
+                addObjectToArray(img);
+            })
+
+        });
+
+        canvas.on("mouse:up", () => {
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true,
+                });
+            }
+
+            setMode("none");
+            clearMouseListeners();
+        });
+    }
+
+    /**
+     * Adds a Shoe Object to Canvas
+     * Uses current X and Y values to place the shuttlecock image
+     * @updates {canvas}
+     * @returns None
+     */
+
+    const addShoeObject = (isRightBoot) => {
+        clearMouseListeners();
+        canvas.isDrawingMode = false;
+        // canvas.__eventListeners = {}
+        setMode("Shuttle Object");
+
+        for (let i = 0; i < canvasObjects.current.length; i++) {
+            canvasObjects.current[i].set({
+                selectable: false,
+            });
+        }
+
+        canvas.on("mouse:down", (event) => {
+            startX = canvas.getPointer(event.e).x;
+            startY = canvas.getPointer(event.e).y;
+            new fabric.Image.fromURL(RightBoot, (img) => {
+                img.set({
+                    left: startX,
+                    top: startY
+                })
+                img.scaleToWidth(40)
+                if (!isRightBoot) {
+                    img.set({
+                        flipX: true
+                    })  
+                }
+                canvas.add(img);
+                addObjectToArray(img);
+            })
+
+        });
+
+        canvas.on("mouse:up", () => {
+            for (let i = 0; i < canvasObjects.current.length; i++) {
+                canvasObjects.current[i].set({
+                    selectable: true,
+                });
+            }
+
+            setMode("none");
+            clearMouseListeners();
+        });
+    }
+
+    /**
      * Saves current State of canvas
      * @returns None
      */
@@ -760,7 +891,7 @@ export default function Layout3D(props) {
      */
 
     const selectCanvasBackground = () => {
-        const list = ["white", "#00bf00", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
+        const list = ["white", "#d4edad", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
         return (
             list.map((item) => (
                 <Button bg={item} value={item} m="1" borderRadius={'100%'} size='sm' onClick={
@@ -818,6 +949,21 @@ export default function Layout3D(props) {
             icon: <BiText />,
             func: addText,
         },
+        {
+            name: "Shuttle Object",
+            icon: <GiShuttlecock/>,
+            func: addShuttleObject,
+        },
+        {
+            name: "Right Boot",
+            icon: <GiRunningShoe/>,
+            func: () => addShoeObject(true),
+        },
+        {
+            name: "Left Boot",
+            icon: <GiRunningShoe/>,
+            func: () => addShoeObject(false),
+        }
     ];
 
     /**
@@ -1524,48 +1670,100 @@ export default function Layout3D(props) {
                     180) /
                 Math.PI +
                 90;
-            img.set({
-                left: arrayOfRallies.current.rallies[
-                    arrayOfRallies.current.currentActiveIndex
-                ].shots[lastActiveAnimation].x,
-                top: arrayOfRallies.current.rallies[
-                    arrayOfRallies.current.currentActiveIndex
-                ].shots[lastActiveAnimation].y,
-                angle: angle,
-            });
-            img.animate(
-                {
+
+            let YVal = checkHalfVertical(arrayOfRallies.current.rallies[
+                arrayOfRallies.current.currentActiveIndex
+            ].shots[lastActiveAnimation].y)
+
+            console.log(YVal, " : UO : ", lastActiveAnimation)
+            if (YVal === 1) {
+                img.set({
                     left: arrayOfRallies.current.rallies[
                         arrayOfRallies.current.currentActiveIndex
-                    ].shots[lastActiveAnimation + 1].x,
+                    ].shots[lastActiveAnimation].x,
                     top: arrayOfRallies.current.rallies[
                         arrayOfRallies.current.currentActiveIndex
-                    ].shots[lastActiveAnimation + 1].y,
-                },
-                {
-                    duration: 1000,
-                    onChange: canvas.renderAll.bind(canvas),
-                    onComplete: () => {
-                        console.log(
-                            lastActiveAnimation,
-                            " : ",
-                            arrayOfRallies.current.rallies[
-                                arrayOfRallies.current.currentActiveIndex
-                            ].shots.length - 2
-                        );
-                        if (
-                            lastActiveAnimation ===
-                            arrayOfRallies.current.rallies[
-                                arrayOfRallies.current.currentActiveIndex
-                            ].shots.length -
-                            2
-                        ) {
-                            shuttleAnimationObject.current = null;
-                            canvas.remove(img);
-                        }
+                    ].shots[lastActiveAnimation].y,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].x,
+                        top: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].y,
                     },
-                }
-            );
+                    {
+                        duration: 1000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length -
+                                2
+                            ) {
+                                shuttleAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+            else {
+                img.set({
+                    left: arrayOfRallies.current.rallies[
+                        arrayOfRallies.current.currentActiveIndex
+                    ].shots[lastActiveAnimation].x,
+                    top: arrayOfRallies.current.rallies[
+                        arrayOfRallies.current.currentActiveIndex
+                    ].shots[lastActiveAnimation].y,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].x,
+                        top: arrayOfRallies.current.rallies[
+                            arrayOfRallies.current.currentActiveIndex
+                        ].shots[lastActiveAnimation + 1].y,
+                    },
+                    {
+                        duration: 1000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfRallies.current.rallies[
+                                    arrayOfRallies.current.currentActiveIndex
+                                ].shots.length -
+                                2
+                            ) {
+                                shuttleAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
             arrayOfRallies.current.rallies[
                 arrayOfRallies.current.currentActiveIndex
             ].lastActiveAnimation = lastActiveAnimation + 1;
@@ -1580,7 +1778,7 @@ export default function Layout3D(props) {
     const runCurrentShuttleAnimation = () => {
         if (arrayOfRallies.current.rallies[
             arrayOfRallies.current.currentActiveIndex
-        ].shots === undefined) {
+        ] === undefined) {
             window.alert("Please add rally positions to run simulation");
             return
         }
@@ -1694,48 +1892,100 @@ export default function Layout3D(props) {
             } else {
                 angle = 0
             }
-            img.set({
-                left: arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements[lastActiveAnimation].x,
-                top: arrayOfFootwork.current.footworks[
-                    arrayOfFootwork.current.currentActiveIndex
-                ].movements[lastActiveAnimation].y,
-                angle: angle,
-            });
-            img.animate(
-                {
+            let YVal = checkHalfVertical(arrayOfFootwork.current.footworks[
+                arrayOfFootwork.current.currentActiveIndex
+            ].movements[lastActiveAnimation].y)
+
+            if (YVal === 1) {
+
+                img.set({
                     left: arrayOfFootwork.current.footworks[
                         arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].x,
+                    ].movements[lastActiveAnimation].x + 30,
                     top: arrayOfFootwork.current.footworks[
                         arrayOfFootwork.current.currentActiveIndex
-                    ].movements[lastActiveAnimation + 1].y,
-                },
-                {
-                    duration: 2000,
-                    onChange: canvas.renderAll.bind(canvas),
-                    onComplete: () => {
-                        console.log(
-                            lastActiveAnimation,
-                            " : ",
-                            arrayOfFootwork.current.footworks[
-                                arrayOfFootwork.current.currentActiveIndex
-                            ].movements.length - 2
-                        );
-                        if (
-                            lastActiveAnimation ===
-                            arrayOfFootwork.current.footworks[
-                                arrayOfFootwork.current.currentActiveIndex
-                            ].movements.length -
-                            2
-                        ) {
-                            rightFootworkAnimationObject.current = null;
-                            canvas.remove(img);
-                        }
+                    ].movements[lastActiveAnimation].y + 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].x + 30,
+                        top: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].y + 20,
                     },
-                }
-            );
+                    {
+                        duration: 2000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length -
+                                2
+                            ) {
+                                rightFootworkAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+            else {
+                img.set({
+                    left: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation].x - 30,
+                    top: arrayOfFootwork.current.footworks[
+                        arrayOfFootwork.current.currentActiveIndex
+                    ].movements[lastActiveAnimation].y - 20,
+                    angle: angle,
+                });
+                img.animate(
+                    {
+                        left: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].x - 30,
+                        top: arrayOfFootwork.current.footworks[
+                            arrayOfFootwork.current.currentActiveIndex
+                        ].movements[lastActiveAnimation + 1].y - 20,
+                    },
+                    {
+                        duration: 2000,
+                        onChange: canvas.renderAll.bind(canvas),
+                        onComplete: () => {
+                            console.log(
+                                lastActiveAnimation,
+                                " : ",
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length - 2
+                            );
+                            if (
+                                lastActiveAnimation ===
+                                arrayOfFootwork.current.footworks[
+                                    arrayOfFootwork.current.currentActiveIndex
+                                ].movements.length -
+                                2
+                            ) {
+                                rightFootworkAnimationObject.current = null;
+                                canvas.remove(img);
+                            }
+                        },
+                    }
+                );
+            }
+
             arrayOfFootwork.current.footworks[
                 arrayOfFootwork.current.currentActiveIndex
             ].lastActiveAnimation = lastActiveAnimation + 1;
@@ -2198,7 +2448,7 @@ export default function Layout3D(props) {
      */
 
     const handleButtonProps = (obj) => {
-        const list = ["#00bf00", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
+        const list = ["#d4edad", "#82cdcd", "#eedd82", "#82cda8", "#82a8cd", "#cd8282", "orange", "yellow", "red", "teal", "blue", "cyan", "purple", "pink"]
         return (
             list.map((item) => (
                 <Button bg={item} value={item} m="1" borderRadius={'100%'} size='sm' onClick={
@@ -2468,14 +2718,22 @@ export default function Layout3D(props) {
                 </Box>
 
                 <Box display={["none", "flex"]} w={"20vw"} m={"2vw"}>
+                    <VStack w={'100%'}>
+                        <Box mt={2} w={'100%'}>
+                            <Input value={canvasTitle.current} onChange={(e) => {
+                                canvasTitle.current = e.target.value
+                                forceUpdate()
+                            }}></Input>
+                        </Box>
                         <Box mt={2} w={'100%'}>
                             {setSimulationMenu()}
                         </Box>
+                    </VStack>
                 </Box>
 
                 <Box
-                    w={["100vw", "50vw", "50vw"]}
-                    minW={"50vw"}
+                    w={["100vw", "70vw", "70vw"]}
+                    minW={"70vw"}
                     h={"95vh"}
                     ref={boxDiv}
                 >
