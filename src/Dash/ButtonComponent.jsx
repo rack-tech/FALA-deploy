@@ -16,7 +16,8 @@ export default function ButtonComponent(props) {
                 role={'group'}
                 p={4}
                 maxW={'90%'}
-                minH='60vh'
+                h={['600', '600', '60vh']}
+                overflow='scroll'
                 w={'full'}
                 bg={useColorModeValue('white', 'gray.800')}
                 boxShadow={'xl'}

@@ -60,7 +60,7 @@ export default function Dash() {
         <Router>
             <Switch>
                 <Route path='/' exact>
-                    <SimpleGrid columns={5} p={12}>
+                    <SimpleGrid columns={[1, 2, 3]} p={12}>
                         {mapper.map((item) => {
                             return (
                                 <Link to={item.path}>

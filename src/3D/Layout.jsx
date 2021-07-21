@@ -52,6 +52,13 @@ import {
     SliderTrack,
     SliderFilledTrack,
     SliderThumb,
+    Drawer,
+    DrawerBody,
+    DrawerHeader,
+    DrawerOverlay,
+    DrawerContent,
+    DrawerCloseButton,
+    Select,
 } from "@chakra-ui/react";
 
 import { fabric } from "fabric";
@@ -84,12 +91,31 @@ import {
     AiOutlineReload,
     BsSun,
     BsMoon,
-    GiRunningShoe
+    GiRunningShoe,
+    FaShapes,
+    RiRemoteControl2Line,
+    GiGears,
+    IoIosListBox,
+    BiCustomize
 } from "react-icons/all";
+
+import {
+    isMobile,
+    isTablet,
+    isBrowser,
+} from 'react-device-detect'
 
 // Layout Function has Layout of Court as well as controls
 
 export default function Layout3D(props) {
+
+    // Drawer for Mobile Devices
+    const { isOpen: isObjectsDrawerOpen, onOpen: onObjectsDrawerOpen, onClose: onObjectsDrawerClose } = useDisclosure()
+    const { isOpen: isSimulationControlsDrawerOpen, onOpen: onSimulationControlsDrawerOpen, onClose: onSimulationControlsDrawerClose } = useDisclosure()
+    const { isOpen: isControlsDrawerOpen, onOpen: onControlsDrawerOpen, onClose: onControlsDrawerClose } = useDisclosure()
+    const { isOpen: isSimulationListsDrawerOpen, onOpen: onSimulationListsDrawerOpen, onClose: onSimulationListsDrawerClose } = useDisclosure()
+    const { isOpen: isPersonizationDrawerOpen, onOpen: onPersonizationDrawerOpen, onClose: onPersonizationDrawerClose } = useDisclosure()
+
     // Color Mode State Variable
     const { colorMode, toggleColorMode } = useColorMode();
 
@@ -122,6 +148,13 @@ export default function Layout3D(props) {
     // Create a Mode Variable to Highlight which mode is active
     const [mode, setMode] = useState("Pointer");
 
+    // Create Save Settings reference Object
+    const saveSettings = useRef({
+        name: canvasTitle.current,
+        keepObjects: false,
+        exportAs: 'image/svg+xml;charset=utf-8'
+    })
+
     /**
      * Variables for Drawing Objects
      */
@@ -149,7 +182,10 @@ export default function Layout3D(props) {
     });
 
     // disclosure variables for controlling the change name modal
-    const { isOpen, onOpen, onClose } = useDisclosure();
+    const { isOpen: isNameControlOpen, onOpen: onNameControlOpen, onClose: onNameControlClose } = useDisclosure();
+
+    // disclosure variable for controlling save canvas options
+    const {isOpen: isSaveCanvasOpen, onOpen: onSaveCanvasOpen, onClose: onSaveCanvasClose } = useDisclosure()
 
     // reference variable to get the rally name or footwork name
     const rallyOrFootworkName = useRef(null);
@@ -738,7 +774,7 @@ export default function Layout3D(props) {
      * @returns None
      */
 
-     const addShuttleObject = () => {
+    const addShuttleObject = () => {
         clearMouseListeners();
         canvas.isDrawingMode = false;
         // canvas.__eventListeners = {}
@@ -808,7 +844,7 @@ export default function Layout3D(props) {
                 if (!isRightBoot) {
                     img.set({
                         flipX: true
-                    })  
+                    })
                 }
                 canvas.add(img);
                 addObjectToArray(img);
@@ -847,9 +883,26 @@ export default function Layout3D(props) {
 
         // SVG
 
+        if (!saveSettings.current.keepObjects) {
+            clearAllRallyObjects()
+            clearAllFootworkObjects()
+        }
+
+        setMode("Pointer")
+
         console.log(canvas.toSVG())
-        const file = new Blob([canvas.toSVG()], { type: 'image/svg+xml;charset=utf-8' });
-        download(URL.createObjectURL(file), "Canvas.svg")
+        let blob = canvas.toSVG()
+        setTimeout(() => {
+            const file = new Blob([blob], { type: saveSettings.current.exportAs });
+            console.log(saveSettings.current.exportAs)
+            if (saveSettings.current.exportAs === 'image/svg+xml;charset=utf-8') {
+                download(file, saveSettings.current.name + ".svg")
+            } else if (saveSettings.current.exportAs === 'image/png') {
+                download(file, saveSettings.current.name + ".png")
+            } else {
+                download(file, saveSettings.current.name + ".jpg")
+            }
+        }, 200);
     }
 
     /**
@@ -951,17 +1004,17 @@ export default function Layout3D(props) {
         },
         {
             name: "Shuttle Object",
-            icon: <GiShuttlecock/>,
+            icon: <GiShuttlecock />,
             func: addShuttleObject,
         },
         {
             name: "Right Boot",
-            icon: <GiRunningShoe/>,
+            icon: <GiRunningShoe />,
             func: () => addShoeObject(true),
         },
         {
             name: "Left Boot",
-            icon: <GiRunningShoe/>,
+            icon: <GiRunningShoe />,
             func: () => addShoeObject(false),
         }
     ];
@@ -974,7 +1027,9 @@ export default function Layout3D(props) {
         {
             name: "Save",
             icon: <BiSave />,
-            func: saveCanvas,
+            func: () => {
+                onSaveCanvasOpen()
+            },
         },
         {
             name: "Delete",
@@ -1715,6 +1770,8 @@ export default function Layout3D(props) {
                             ) {
                                 shuttleAnimationObject.current = null;
                                 canvas.remove(img);
+                                runFlag.current = false
+                                forceUpdate()
                             }
                         },
                     }
@@ -1759,6 +1816,9 @@ export default function Layout3D(props) {
                             ) {
                                 shuttleAnimationObject.current = null;
                                 canvas.remove(img);
+                                runFlag.current = false
+                                forceUpdate()
+
                             }
                         },
                     }
@@ -1847,6 +1907,8 @@ export default function Layout3D(props) {
                 1;
                 i++
             ) {
+                forceUpdate()
+
                 if (i === -1) {
                     continue;
                 }
@@ -1936,6 +1998,8 @@ export default function Layout3D(props) {
                             ) {
                                 rightFootworkAnimationObject.current = null;
                                 canvas.remove(img);
+                                runFlag.current = false
+                                forceUpdate()
                             }
                         },
                     }
@@ -1980,6 +2044,8 @@ export default function Layout3D(props) {
                             ) {
                                 rightFootworkAnimationObject.current = null;
                                 canvas.remove(img);
+                                runFlag.current = false
+                                forceUpdate()
                             }
                         },
                     }
@@ -2087,6 +2153,7 @@ export default function Layout3D(props) {
                     1;
                     i++
                 ) {
+                    forceUpdate()
                     if (i === -1) {
                         continue;
                     }
@@ -2097,6 +2164,7 @@ export default function Layout3D(props) {
                     waitFlag++;
                 }
             });
+            forceUpdate()
         })
     };
 
@@ -2287,6 +2355,194 @@ export default function Layout3D(props) {
     };
 
     /**
+     * Simulation Menu for Mobile Devices
+     * Does everything the same setSimulationMenu() does but with tweaks for mobile devices
+     * Displays the current number of rallies or footworks placed on the canvas by the user
+     * @returns the chakra.div for displaying the rallies and footworks
+     * @function {addRally, addFunction}
+     */
+
+    const setSimulationMenuForMobile = () => {
+        let ralliesOrFootwork = null;
+        let l = null;
+        if (mode === "Rally") {
+            l = arrayOfRallies.current.rallies;
+            if (l === undefined) {
+                l = [];
+            }
+            ralliesOrFootwork = "Rallies";
+        } else if (mode === "Footwork") {
+            l = arrayOfFootwork.current.footworks;
+            if (l === undefined) {
+                l = [];
+            }
+            ralliesOrFootwork = "Footworks";
+        } else {
+            l = [];
+            ralliesOrFootwork = "Select Simulation";
+        }
+        console.log("Currently Rendering : ", l, arrayOfFootwork.current.currentActiveIndex);
+        return (
+            <chakra.div w={"100%"} overflow='auto'>
+                <Center w="100%">
+                    <VStack w="100%">
+                        <Text fontSize={"2xl"}>{ralliesOrFootwork}</Text>
+                        <Flex as="p" fontSize={"2xl"} mb={"1vh"}>
+                            {mode === "Rally" ? (
+                                <Checkbox
+                                    isChecked={showAllRallies.current}
+                                    onChange={(e) => {
+                                        showAllRallies.current = e.target.checked;
+                                        forceUpdate();
+                                        constructRally();
+                                    }}
+                                >
+                                    Show All
+                                </Checkbox>
+                            ) : null}
+                        </Flex>
+                        <Flex as="p" fontSize={"sm"}>
+                            {mode === "Footwork" ? (
+                                <Checkbox
+                                    isChecked={showAllFootworks.current}
+                                    onChange={(e) => {
+                                        showAllFootworks.current = e.target.checked;
+                                        forceUpdate();
+                                        console.log("Called Footwork Now");
+                                        constructFootwork();
+                                    }}
+                                >
+                                    Show All
+                                </Checkbox>
+                            ) : null}
+                        </Flex>
+                    </VStack>
+                </Center>
+
+                <chakra.div overflowY="auto">
+                    <OrderedList justifyContent="center" alignItems="left" spacing="1">
+                        {l.map((i, index) => (
+                            <ListItem key={index}>
+                                <Grid templateColumns="repeat(4, 1fr)" gap={1}>
+                                    <GridItem colSpan={3}>
+                                        <Input
+                                            aria-colspan={8}
+                                            w={"100%"}
+                                            onClick={() => {
+                                                if (mode === "Rally") {
+                                                    arrayOfRallies.current.currentActiveIndex = index;
+                                                    clearMouseListeners();
+                                                    constructRally();
+                                                } else if (mode === "Footwork") {
+                                                    arrayOfFootwork.current.currentActiveIndex = index;
+                                                    clearMouseListeners();
+                                                    constructFootwork();
+                                                }
+                                            }}
+                                            value={i.name}
+                                            _hover={() => { }}
+                                            border={"solid"}
+                                            fill={i.color}
+                                            focusBorderColor={i.color}
+                                            borderColor={i.color}
+                                            defaultValue={i.name}
+                                            onChange={(e) => {
+                                                if (e.target.value === "") {
+                                                    e.target.placeholder = "Enter some value";
+                                                    forceUpdate();
+                                                    return;
+                                                }
+                                                if (mode === "Rally") {
+                                                    arrayOfRallies.current.rallies[
+                                                        arrayOfRallies.current.currentActiveIndex
+                                                    ].name = e.target.value;
+                                                } else if (mode === "Footwork") {
+                                                    arrayOfFootwork.current.footworks[
+                                                        arrayOfFootwork.current.currentActiveIndex
+                                                    ].name = e.target.value;
+                                                }
+                                                forceUpdate();
+                                            }}
+                                        />
+                                    </GridItem>
+                                    <GridItem colSpan={1}>
+                                        <Text
+                                            fontSize={"3xl"}
+                                            as="button"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        "Do you really want to delete this item"
+                                                    )
+                                                ) {
+                                                    if (mode === "Rally") {
+
+                                                        // Handle Object History
+                                                        if (showAllRallies.current || arrayOfRallies.current.currentActiveIndex === index) {
+                                                            for (let i = 0; i < arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory.length; i++) {
+                                                                canvas.remove(arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].objectHistory[i])
+                                                            }
+                                                        }
+
+                                                        // Handle Current Active Index
+                                                        if (arrayOfRallies.current.rallies.length === 0) {
+                                                            arrayOfRallies.current.currentActiveIndex = -1
+                                                        }
+                                                        else if (index === arrayOfRallies.current.rallies.length - 1) {
+                                                            arrayOfRallies.current.currentActiveIndex = arrayOfRallies.current.rallies.length - 2
+                                                        }
+                                                        else {
+                                                            arrayOfRallies.current.currentActiveIndex = index
+                                                        }
+
+                                                        arrayOfRallies.current.rallies.splice(index, 1);
+                                                        forceUpdate();
+                                                        constructRally()
+                                                        return;
+                                                    }
+                                                    if (mode === "Footwork") {
+
+                                                        // Handle Object History
+                                                        if (showAllFootworks.current || arrayOfFootwork.current.currentActiveIndex === index) {
+                                                            for (let i = 0; i < arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory.length; i++) {
+                                                                console.log("Deleting")
+                                                                canvas.remove(arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].objectHistory[i])
+                                                            }
+                                                        }
+
+                                                        // Handle Current Active Index
+                                                        if (arrayOfFootwork.current.footworks.length === 0) {
+                                                            arrayOfFootwork.current.currentActiveIndex = -1
+                                                        }
+                                                        else if (index === arrayOfFootwork.current.footworks.length - 1) {
+                                                            arrayOfFootwork.current.currentActiveIndex = arrayOfFootwork.current.footworks.length - 2
+                                                        }
+                                                        else {
+                                                            arrayOfFootwork.current.currentActiveIndex = index
+                                                        }
+
+                                                        console.log(showAllFootworks.current, arrayOfFootwork.current.currentActiveIndex)
+                                                        arrayOfFootwork.current.footworks.splice(index, 1);
+                                                        forceUpdate();
+                                                        constructFootwork()
+                                                        return;
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <MdDelete />
+                                        </Text>
+                                    </GridItem>
+                                </Grid>
+                            </ListItem>
+                        ))}
+                    </OrderedList>
+                </chakra.div>
+            </chakra.div>
+        );
+    };
+
+    /**
      * Menu for showing Simulation Modes
      */
 
@@ -2315,7 +2571,7 @@ export default function Layout3D(props) {
             colorScheme: "blue",
             func: () => {
                 if (mode === "Rally" || mode === "Footwork") {
-                    onOpen();
+                    onNameControlOpen();
                 } else {
                     window.alert("Choose 1 of simulation operations");
                 }
@@ -2348,7 +2604,15 @@ export default function Layout3D(props) {
             icon: <BiStopCircle />,
             colorScheme: "red",
             p: "Stop",
-            func: () => { },
+            func: () => {
+                runFlag.current = false
+                if (mode === "Rally") {
+                    arrayOfRallies.current.rallies[arrayOfRallies.current.currentActiveIndex].lastActiveAnimation = 0
+                } else if (mode === "Footwork") {
+                    arrayOfFootwork.current.footworks[arrayOfFootwork.current.currentActiveIndex].lastActiveAnimation = 0
+                }
+
+            },
         },
         {
             name: "Undo",
@@ -2496,10 +2760,242 @@ export default function Layout3D(props) {
     let currentLineColor = useColorModeValue("gray.800", "white.200");
 
     return (
-        <chakra.div my={5}>
+        <chakra.div mt={() => {
+            if (isBrowser) {
+                return "5vh"
+            } else {
+                return 0
+            }
+        }}>
+            <Box display={() => {
+                if (isMobile || isTablet) {
+                    return "flex"
+                } else {
+                    return "none"
+                }
+            }} bg={useColorModeValue('red.400', 'red.700')}>
+                <SimpleGrid columns={5} w='100%' py={2}>
+                    <Button variant='ghost' onClick={onObjectsDrawerOpen} fontSize={'2xl'}><FaShapes /></Button>
+                    <Button variant='ghost' onClick={onControlsDrawerOpen} fontSize={'2xl'}><RiRemoteControl2Line /></Button>
+                    <Button variant='ghost' onClick={onSimulationControlsDrawerOpen} fontSize={'2xl'}><GiGears /></Button>
+                    <Button variant='ghost' onClick={onSimulationListsDrawerOpen} fontSize={'2xl'}><IoIosListBox /></Button>
+                    <Button variant='ghost' onClick={onPersonizationDrawerOpen} fontSize={'2xl'}><BiCustomize /></Button>
+
+                </SimpleGrid>
+
+                <Drawer isOpen={isObjectsDrawerOpen}
+                    placement='bottom'
+                    onClose={onObjectsDrawerClose}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent>
+                        <DrawerCloseButton />
+                        <DrawerHeader>
+                            Objects
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <Grid templateColumns='repeat(7, 1fr)' w='100%'>
+                                {objectsMenu.map((item, idx) => {
+                                    return (
+                                        <GridItem
+                                            alignContent='start'
+                                            w='100%'
+                                            colSpan={7}
+                                            variant="ghost"
+                                            borderRadius={0}
+                                            onClick={() => {
+                                                onObjectsDrawerClose()
+                                                item.func()
+                                            }}
+                                            color={currentLineColor}
+                                            fontSize={"xl"}
+                                            bg={
+                                                mode === item.name
+                                                    ? "blue.400"
+                                                    : currentBackgroundColor
+                                            }
+                                            _hover={() => { }}
+                                        >
+                                            <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>
+                                                {item.name}
+                                            </Button>
+                                        </GridItem>
+                                    );
+                                })}
+                            </Grid>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+
+                <Drawer isOpen={isControlsDrawerOpen}
+                    placement='bottom'
+                    onClose={onControlsDrawerClose}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent>
+                        <DrawerCloseButton />
+                        <DrawerHeader>
+                            Controls
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <Grid templateColumns='repeat(7, 1fr)' w='100%'>
+                                {canvasControlMenu.map((item, idx) => {
+                                    return (
+                                        <GridItem
+                                            alignContent='start'
+                                            w='100%'
+                                            colSpan={7}
+                                            variant="ghost"
+                                            borderRadius={0}
+                                            onClick={() => {
+                                                onControlsDrawerClose()
+                                                item.func()
+                                            }}
+                                            color={currentLineColor}
+                                            fontSize={"xl"}
+                                            bg={
+                                                mode === item.name
+                                                    ? "blue.400"
+                                                    : currentBackgroundColor
+                                            }
+                                            _hover={() => { }}
+                                        >
+                                            <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>
+                                                {item.name}
+                                            </Button>
+                                        </GridItem>
+                                    );
+                                })}
+                            </Grid>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+
+                <Drawer isOpen={isSimulationControlsDrawerOpen}
+                    placement='bottom'
+                    onClose={onSimulationControlsDrawerClose}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent>
+                        <DrawerCloseButton />
+                        <DrawerHeader>
+                            Simulation Controls
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <Grid templateColumns='repeat(7, 1fr)' w='100%'>
+                                {simulationOptions.map((item, idx) => {
+                                    return (
+                                        <GridItem
+                                            alignContent='start'
+                                            w='100%'
+                                            colSpan={7}
+                                            variant="ghost"
+                                            borderRadius={0}
+                                            onClick={() => {
+                                                onSimulationControlsDrawerClose()
+                                                item.func()
+                                            }}
+                                            color={currentLineColor}
+                                            fontSize={"xl"}
+                                            bg={
+                                                mode === item.name
+                                                    ? "blue.400"
+                                                    : currentBackgroundColor
+                                            }
+                                            _hover={() => { }}
+                                        >
+                                            <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>
+                                                {item.name}
+                                            </Button>
+                                        </GridItem>
+                                    );
+                                })}
+                                {simulationOperations.map((item, idx) => {
+                                    return (
+                                        <GridItem
+                                            alignContent='start'
+                                            w='100%'
+                                            colSpan={7}
+                                            variant="ghost"
+                                            borderRadius={0}
+                                            onClick={() => {
+                                                onSimulationControlsDrawerClose()
+                                                item.func()
+                                            }}
+                                            color={currentLineColor}
+                                            fontSize={"xl"}
+                                            bg={
+                                                mode === item.name
+                                                    ? "blue.400"
+                                                    : currentBackgroundColor
+                                            }
+                                            _hover={() => { }}
+                                        >
+                                            <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>
+                                                {item.name}
+                                            </Button>
+                                        </GridItem>
+                                    );
+                                })}
+                            </Grid>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+
+                <Drawer isOpen={isSimulationListsDrawerOpen}
+                    placement='bottom'
+                    onClose={onSimulationListsDrawerClose}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent>
+                        <DrawerCloseButton />
+                        <DrawerHeader>
+                            Simulation Lists
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <Grid templateColumns='repeat(7, 1fr)' w='100%'>
+                                <GridItem colSpan={7}>
+                                    {setSimulationMenuForMobile()}
+                                </GridItem>
+                            </Grid>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+
+                <Drawer isOpen={isPersonizationDrawerOpen}
+                    placement='bottom'
+                    onClose={onPersonizationDrawerClose}
+                >
+                    <DrawerOverlay />
+                    <DrawerContent>
+                        <DrawerCloseButton />
+                        <DrawerHeader>
+                            Personalize
+                        </DrawerHeader>
+                        <DrawerBody>
+                            <Grid templateColumns='repeat(7, 1fr)' w='100%'>
+                                <GridItem colSpan={7} my={1}>
+                                    <Input value={canvasTitle.current} onChange={(e) => {
+                                        canvasTitle.current = e.target.value
+                                        forceUpdate()
+                                    }} />
+                                </GridItem>
+                            </Grid>
+                        </DrawerBody>
+                    </DrawerContent>
+                </Drawer>
+
+            </Box>
+
             <Stack direction={["column", "row"]}>
-                <Box w={"3vw"} h={dims.boxH}>
-                    <Box display={["none", "flex"]}>
+                <Box h={dims.boxH} display={() => {
+                    if (isBrowser) {
+                        return "block"
+                    } else {
+                        return "none"
+                    }
+                }}>
+                    <Box>
                         <SimpleGrid columns={1} overflowY="auto" overflow="hidden">
                             <Popover size='md' placement='right' colorScheme='cyan' arrowSize={20}>
                                 <PopoverTrigger>
@@ -2550,7 +3046,7 @@ export default function Layout3D(props) {
                             })}
                         </SimpleGrid>
                     </Box>
-                    <Box display={["none", "flex"]}>
+                    <Box>
                         <SimpleGrid
                             columns={1}
                             overflowY="auto"
@@ -2575,7 +3071,7 @@ export default function Layout3D(props) {
                             </Popover>
                         </SimpleGrid>
                     </Box>
-                    <Box display={["none", "flex"]}>
+                    <Box>
                         <SimpleGrid
                             columns={1}
                             overflowY="auto"
@@ -2609,8 +3105,14 @@ export default function Layout3D(props) {
                     </Box>
                 </Box>
 
-                <Box w={"3vw"}>
-                    <Box display={["none", "flex"]} alignContent="center">
+                <Box display={() => {
+                    if (isBrowser) {
+                        return "block"
+                    } else {
+                        return "none"
+                    }
+                }}>
+                    <Box alignContent="center">
                         <SimpleGrid
                             flexGrow={1}
                             columns={1}
@@ -2650,12 +3152,12 @@ export default function Layout3D(props) {
                             })}
                         </SimpleGrid>
                     </Box>
-                    <Box display={["none", "flex"]}>
+                    <Box>
                         <VStack flexGrow={1}>
                             <SimpleGrid columns={1} overflow="hidden">
                                 {simulationOperations.map((item, idx) => {
                                     return (
-                                        <Box w="100%" >
+                                        <Box w="100%" display={item.name === "Undo" && runFlag.current === true ? "none" : "flex"}>
                                             <Tooltip label={item.name} key={idx}>
                                                 <Button
                                                     _hover={() => { }}
@@ -2717,7 +3219,13 @@ export default function Layout3D(props) {
                     </Box>
                 </Box>
 
-                <Box display={["none", "flex"]} w={"20vw"} m={"2vw"}>
+                <Box display={() => {
+                    if (isBrowser) {
+                        return "block"
+                    } else {
+                        return "none"
+                    }
+                }} w={"20vw"} m={"2vw"}>
                     <VStack w={'100%'}>
                         <Box mt={2} w={'100%'}>
                             <Input value={canvasTitle.current} onChange={(e) => {
@@ -2732,9 +3240,17 @@ export default function Layout3D(props) {
                 </Box>
 
                 <Box
-                    w={["100vw", "70vw", "70vw"]}
-                    minW={"70vw"}
-                    h={"95vh"}
+                    border='solid'
+                    borderWidth='2px'
+                    w={() => {
+                        if (isMobile || isTablet) {
+                            return "100vw"
+                        } else {
+                            return "60vw"
+                        }
+                    }}
+                    minW={"60vw"}
+                    h={"90vh"}
                     ref={boxDiv}
                 >
                     <canvas id="canvas"></canvas>
@@ -2744,8 +3260,8 @@ export default function Layout3D(props) {
 
             {/* Modal to take the user input for naming the rally or footwork */}
             <Modal
-                isOpen={isOpen && (mode === "Rally" || mode === "Footwork")}
-                onClose={onClose}
+                isOpen={isNameControlOpen && (mode === "Rally" || mode === "Footwork")}
+                onClose={onNameControlClose}
                 size={'xs'}
 
             >
@@ -2764,19 +3280,80 @@ export default function Layout3D(props) {
                     </ModalBody>
 
                     <ModalFooter>
-                        <Button colorScheme="red" mx="3" onClick={onClose}>
+                        <Button colorScheme="red" mx="3" onClick={onNameControlClose}>
                             Close
                         </Button>
                         <Button
                             colorScheme="blue"
                             onClick={mode === "Rally" ? addRally : addFootwork}
-                            onMouseUp={onClose}
+                            onMouseUp={onNameControlClose}
                         >
                             Set Name
                         </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
+
+            {/* Modal for saving canvas */}
+            <Modal
+                isOpen={isSaveCanvasOpen}
+                onClose={onSaveCanvasClose}
+                size={'xs'}
+
+            >
+                <ModalOverlay />
+                <ModalContent>
+                    <ModalHeader>
+                        Save Canvas Settings
+                    </ModalHeader>
+                    <ModalCloseButton />
+                    <ModalBody>
+                        <Input value={canvasTitle.current} onChange={(e) => {
+                            canvasTitle.current = e.target.value
+                            saveSettings.current.name = e.target.value
+                            forceUpdate()
+                        }} />
+                        <Checkbox mt={3} onChange={(e) => {
+                            saveSettings.current.keepObjects = e.target.checked
+                            forceUpdate()
+                        }} >
+                            Keep Rallies and footwork objects
+                        </Checkbox>
+                        <Text mt={3}>
+                            Export As : 
+                        </Text>
+                        <Select onChange={(e) => {
+                            saveSettings.current.exportAs = e.target.value
+                        }}>
+                            <option value='image/svg+xml;charset=utf-8'>
+                                SVG
+                            </option>
+                            <option value='image/png'>
+                                PNG
+                            </option>
+                            <option value='image/jpg'>
+                                JPG
+                            </option>
+                        </Select>
+
+                    </ModalBody>
+
+                    <ModalFooter>
+                        <Button colorScheme="red" mx="3" onClick={onSaveCanvasClose}>
+                            Close
+                        </Button>
+                        <Button
+                            colorScheme="blue"
+                            onClick={saveCanvas}
+                            onMouseUp={onNameControlClose}
+                        >
+                            Download
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            
         </chakra.div>
     );
 }
