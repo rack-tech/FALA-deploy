@@ -4027,6 +4027,13 @@
   "resolved" "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001191.tgz"
   "version" "1.0.30001191"
 
+"canvas-record@^3.0.0":
+  "integrity" "sha512-sKZVpzVy6GYGR5IfqMXLnxA8NVAjsrmImqUGQ+FH3YIu06V1sQPS0MSSQotynDfeLRtaExDNuT7rZ3amnfy3fw=="
+  "resolved" "https://registry.npmjs.org/canvas-record/-/canvas-record-3.0.0.tgz"
+  "version" "3.0.0"
+  dependencies:
+    "file-extension" "^4.0.5"
+
 "canvas@^2.5.0", "canvas@^2.6.1":
   "integrity" "sha512-gLTi17X8WY9Cf5GZ2Yns8T5lfBOcGgFehDFb+JQwDqdOoBOcECS9ZWMEAqMSVcMYwXD659J8NyzjRY/2aE+C2Q=="
   "resolved" "https://registry.npmjs.org/canvas/-/canvas-2.8.0.tgz"
@@ -6054,6 +6061,11 @@
   "version" "6.0.1"
   dependencies:
     "flat-cache" "^3.0.4"
+
+"file-extension@^4.0.5":
+  "integrity" "sha512-l0rOL3aKkoi6ea7MNZe6OHgqYYpn48Qfflr8Pe9G9JPPTx5A+sfboK91ZufzIs59/lPqh351l0eb6iKU9J5oGg=="
+  "resolved" "https://registry.npmjs.org/file-extension/-/file-extension-4.0.5.tgz"
+  "version" "4.0.5"
 
 "file-loader@*", "file-loader@6.1.1":
   "integrity" "sha512-Klt8C4BjWSXYQAfhpYYkG4qHNTna4toMHEbWrI5IuVoxbU6uiDKeKAP99R8mmbJi3lvewn/jQBOgU4+NS3tDQw=="

@@ -12,7 +12,7 @@ import FrontCourt3D from '../assets/3d_court.svg'
 import FrontCourt3DFlat from '../assets/3d_court_colored_flat.svg'
 import SideCourt3D from '../assets/Side_view.svg'
 import SideCourt3DFlat from '../assets/Side_view_flat.svg'
-import { SimpleGrid } from '@chakra-ui/react'
+import { SimpleGrid, Box, chakra, useColorModeValue, } from '@chakra-ui/react'
 
 export default function Dash() {
     const mapper = [{
@@ -40,7 +40,7 @@ export default function Dash() {
             body: "Similar to Front 3D angle, but better for visualizations as a flatter preset means height and overall trajectory of shuttles and movements can be better visualized"
         },
         path: "/FrontFlat3D",
-    }, 
+    },
     {
         img: SideCourt3D,
         content: {
@@ -58,9 +58,17 @@ export default function Dash() {
     }]
     return (
         <Router>
+            <Box display={'flex'} bg={useColorModeValue('red.500', 'red.500')} pl={2}>
+                <chakra.div as='text' fontSize={'2xl'} color={useColorModeValue('whiteAlpha.800', 'black')}>
+                    Rack
+                </chakra.div>
+                <chakra.div as='text' fontSize={'2xl'} color={useColorModeValue('black', 'whiteAlpha.800')}>
+                    Tech
+                </chakra.div>
+            </Box>
             <Switch>
                 <Route path='/' exact>
-                    <SimpleGrid columns={[1, 2, 3]} p={12}>
+                    <SimpleGrid columns={[1, 2, 3]}>
                         {mapper.map((item) => {
                             return (
                                 <Link to={item.path}>

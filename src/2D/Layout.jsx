@@ -4,6 +4,7 @@ import Shuttle from "../assets/badminton_shuttle.png";
 import LeftBoot from "../assets/left_boot.png"
 import RightBoot from "../assets/right_boot.png";
 import download from 'downloadjs'
+import canvasRecord from "canvas-record"
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -35,7 +36,6 @@ import {
     Checkbox,
     Grid,
     GridItem,
-    Divider,
     Popover,
     PopoverBody,
     PopoverHeader,
@@ -81,7 +81,6 @@ import {
     BiPlayCircle,
     BiPauseCircle,
     BiStopCircle,
-    BsPlayFill,
     BsPauseFill,
     BiUndo,
     AiOutlineClear,
@@ -97,7 +96,9 @@ import {
     RiRemoteControl2Line,
     GiGears,
     IoIosListBox,
-    BiCustomize
+    BiCustomize,
+    AiOutlineDownload,
+    BiVideoRecording,
 } from "react-icons/all";
 
 import {
@@ -141,6 +142,13 @@ export default function Layout2D() {
     // Initialize Canvas
     const [canvas, setCanvas] = useState(null);
 
+    // Canvas object for storing and downloading
+    const canvasJSON = useRef(null)
+    const canvasSVG = useRef(null)
+
+    // Canvas Recording Object
+    const canvasRecorder = useRef(null)
+
     // Variable to store current selected object
     const [currentObject, setCurrentObject] = useState(null);
 
@@ -152,7 +160,6 @@ export default function Layout2D() {
 
     // Save Settings Reference Variable
     const saveSettings = useRef({
-        name: canvasTitle.current,
         keepObjects: false,
         exportAs: 'image/svg+xml;charset=utf-8'
     })
@@ -245,6 +252,19 @@ export default function Layout2D() {
             width: dims.boxW,
         });
         fabric.loadSVGFromURL(CourtSVG2, (objects, options) => {
+            fabric.Image.prototype.getSvgSrc = function () {
+                return this.toDataURLforSVG();
+            };
+
+            fabric.Image.prototype.toDataURLforSVG = function (options) {
+                var el = fabric.util.createCanvasElement();
+                el.width = this._element.naturalWidth || this._element.width;
+                el.height = this._element.naturalHeight || this._element.height;
+                el.getContext("2d").drawImage(this._element, 0, 0);
+                var data = el.toDataURL(options);
+                return data;
+            };
+
             fabric.Object.prototype.transparentCorners = false
             fabric.Object.prototype.cornerColor = '#00008B'
             fabric.Object.prototype.cornerStyle = 'circle'
@@ -777,7 +797,6 @@ export default function Layout2D() {
                     left: startX,
                     top: startY
                 })
-                console.log(img.toDataURL('image/svg+xml;charset=utf-8'))
                 img.scaleToWidth(40)
                 canvas.add(img);
                 addObjectToArray(img);
@@ -848,21 +867,26 @@ export default function Layout2D() {
         });
     }
 
+    /**
+     * Function to save canvas in memory
+     * Uses current canvas to populate 2 variables : 
+     * CANVAS image variable
+     * CANVAS json variable
+     */
 
     const saveCanvas = () => {
+        canvasJSON.current = canvas.toDatalessJSON()
+        canvasSVG.current = canvas.toSVG()
+    }
 
-        // JSON
+    /**
+     * Function to download canvas object
+     * Uses current canvas objects to download in the form of an image or json
+     */
 
-        /* const element = document.createElement("temporary_element_whose_name_nobody_will_take");
-        const file = new Blob([JSON.stringify(canvas)], { type: 'text/plain' });
-        element.href = URL.createObjectURL(file);
-        element.download = "canvas.json";
-        document.body.appendChild(element); // Required for this to work in FireFox
-        element.click();
-        */
+    const downloadCanvas = () => {
 
-        // SVG
-
+        saveCanvas()
         if (!saveSettings.current.keepObjects) {
             clearAllRallyObjects()
             clearAllFootworkObjects()
@@ -870,17 +894,27 @@ export default function Layout2D() {
 
         setMode("Pointer")
 
-        console.log(canvas.toSVG())
-        let blob = canvas.toSVG()
         setTimeout(() => {
-            const file = new Blob([blob], { type: saveSettings.current.exportAs });
-            console.log(saveSettings.current.exportAs)
-            if (saveSettings.current.exportAs === 'image/svg+xml;charset=utf-8') {
-                download(file, saveSettings.current.name + ".svg")
-            } else if (saveSettings.current.exportAs === 'image/png') {
-                download(file, saveSettings.current.name + ".png")
+            let file;
+            if (saveSettings.current.exportAs === 'text/plain') {
+                let content = {
+                    canvasData: canvasJSON.current,
+                    rallyData: arrayOfRallies.current,
+                    footworkData: arrayOfFootwork.current
+                }
+                file = new Blob([JSON.stringify(content)], { type: saveSettings.current.exportAs })
+                download(file, canvasTitle.current + " with sim. data.json")
             } else {
-                download(file, saveSettings.current.name + ".jpg")
+                if (saveSettings.current.exportAs === 'image/svg+xml;charset=utf-8') {
+                    file = new Blob([canvasSVG.current], { type: saveSettings.current.exportAs });
+                    download(file, canvasTitle.current + ".svg")
+                } else if (saveSettings.current.exportAs === 'image/png') {
+                    file = new Blob([canvasSVG.current], { type: saveSettings.current.exportAs });
+                    download(file, canvasTitle.current + ".png")
+                } else {
+                    file = new Blob([canvasSVG.current], { type: saveSettings.current.exportAs });
+                    download(file, canvasTitle.current + ".jpg")
+                }
             }
         }, 200);
     }
@@ -1013,6 +1047,11 @@ export default function Layout2D() {
         {
             name: "Save",
             icon: <BiSave />,
+            func: saveCanvas,
+        },
+        {
+            name: "Download",
+            icon: <AiOutlineDownload />,
             func: onSaveCanvasOpen,
         },
         {
@@ -2790,20 +2829,47 @@ export default function Layout2D() {
      * Advanced operation modes
      */
 
-    const advancedSimulationOperations = [
+    const recordingOperations = [
         {
-            name: "Run All",
-            icon: <BsPlayFill />,
-            colorScheme: "teal",
+            name: "Start Recording",
+            icon: <BiVideoRecording />,
             p: "Run All",
-            func: () => { },
+            func: () => {
+                if (canvasRecorder.current !== null) {
+                    if (window.confirm("Do you want to remove previous recording?")) {
+                        canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
+                            filename: canvasTitle.current,
+                            frameRate: 120,
+                            recorderOptions: {
+                                MimeType: "video/webm;codecs=h264"
+                            }
+                        })
+                        canvasRecorder.current.start()
+                    }
+                } else {
+                    canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
+                        filename: canvasTitle.current,
+                        frameRate: 120,
+                        recorderOptions: {
+                            MimeType: "video/mp4"
+                        }
+                    })
+                    canvasRecorder.current.start()
+                }
+            },
         },
         {
-            name: "Pause All",
+            name: "Pause Recording",
             icon: <BsPauseFill />,
-            colorScheme: "whatsapp",
-            p: "Pause All",
-            func: () => { },
+            p: "Pause Recording",
+            func: () => {
+                if (canvasRecorder.current === null) {
+                    window.alert("Nothing to Pause")
+                } else {
+                    canvasRecorder.current.recorder.filename = canvasTitle.current
+                    canvasRecorder.current.stop()
+                }
+            },
         },
     ];
 
@@ -2919,18 +2985,346 @@ export default function Layout2D() {
     return (
         <chakra.div mt={() => {
             if (isBrowser) {
-                return "3vh"
-            } else {
-                return 0
+                return "2vh"
+            } else if (isMobile || isTablet) {
+                return "0"
             }
-        }} h='100vh' >
+        }} >
+            <Stack direction={["column", "row"]}>
+                <Box display={() => {
+                    if (isBrowser) {
+                        return "block"
+                    } else {
+                        return "none"
+                    }
+                }} overflow='scroll' h={'-moz-max-content'}>
+                    <Box>
+                        <SimpleGrid columns={1} overflowY="auto" overflow="hidden" >
+                            <Popover size='sm' placement='right' colorScheme='cyan' arrowSize={20}>
+                                <PopoverTrigger>
+                                    <Button borderRadius={0}
+                                        variant='ghost'
+                                        fontSize={"xl"}
+                                        color={currentLineColor}
+                                        bg={currentBackgroundColor}
+                                        _hover={() => { }}><VscSymbolProperty /></Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <PopoverArrow />
+                                    <PopoverCloseButton />
+                                    <PopoverHeader>Object Properties</PopoverHeader>
+                                    <PopoverBody>{handleProperties()}</PopoverBody>
+                                </PopoverContent>
+                            </Popover>
+                            {objectsMenu.map((item, idx) => {
+                                return (
+                                    <Box w={"100%"}>
+                                        <Tooltip label={item.name} key={idx}>
+                                            <Button
+                                                variant="ghost"
+                                                borderRadius={0}
+                                                onClick={item.func}
+                                                color={currentLineColor}
+                                                fontSize={"xl"}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                                _hover={() => { }}
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box>
+                        <SimpleGrid
+                            columns={1}
+                            overflowY="auto"
+                            overflow="hidden"
+                        >
+                            <Popover placement='right' colorScheme='cyan' arrowSize={20}>
+                                <PopoverTrigger>
+                                    <Button borderRadius={0}
+                                        fontSize={"xl"}
+                                        w={"100%"}
+                                        color={currentLineColor}
+                                        bg={currentBackgroundColor}
+                                        _hover={() => { }}><AiOutlineBgColors /></Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <PopoverArrow />
+                                    <PopoverCloseButton />
+                                    <PopoverHeader>Change Court's Background Color</PopoverHeader>
+                                    <PopoverBody>{selectCanvasBackground()}</PopoverBody>
+                                </PopoverContent>
+                            </Popover>
+                        </SimpleGrid>
+                    </Box>
+                    <Box>
+                        <SimpleGrid
+                            columns={1}
+                            overflowY="auto"
+                            overflow="hidden"
+                        >
+                            {canvasControlMenu.map((item, idx) => {
+                                return (
+                                    <Box w={"100%"}>
+                                        <Tooltip label={item.name} key={item}>
+                                            <Button
+                                                borderRadius={0}
+                                                onClick={item.func}
+                                                fontSize={"xl"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                                _hover={() => { }}
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                </Box>
+
+                <Box display={() => {
+                    if (isBrowser) {
+                        return "block"
+                    } else {
+                        return "none"
+                    }
+                }}>
+                    <Box display={["none", "none", "flex"]}>
+                        <SimpleGrid columns={1} overflowY="auto" overflow="scroll">
+                            {simulationRefs.map((item, idx) => {
+                                return (
+                                    <Box w={"100%"} >
+                                        <Tooltip label={item.name} key={idx}>
+                                            <Button
+                                                _hover={() => { }}
+                                                variant="ghost"
+                                                borderRadius={0}
+                                                onClick={item.func}
+                                                fontSize={"xl"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box display={["none", "none", "flex"]} alignContent="center">
+                        <SimpleGrid
+                            columns={1}
+                            overflowY="auto"
+                            overflow="hidden"
+                        >
+                            {simulationOptions.map((item, idx) => {
+                                return (
+                                    <Box w={"100%"} >
+                                        <Tooltip label={item.name} key={idx}>
+                                            <Button
+                                                _hover={() => { }}
+                                                borderRadius={0}
+                                                onClick={item.func}
+                                                fontSize={"xl"}
+                                                w={"100%"}
+                                                color={currentLineColor}
+                                                bg={
+                                                    mode === item.name
+                                                        ? "blue.400"
+                                                        : currentBackgroundColor
+                                                }
+                                            >
+                                                {item.icon}
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                );
+                            })}
+                        </SimpleGrid>
+                    </Box>
+                    <Box display={["none", "none", "flex"]}>
+                        <VStack flexGrow={1}>
+                            <SimpleGrid columns={1} overflow="hidden">
+                                {simulationOperations.map((item, idx) => {
+                                    return (
+                                        <Box w="100%" display={item.name === "Undo" && runFlag.current === true ? "none" : "flex"}>
+                                            <Tooltip label={item.name} key={idx}>
+                                                <Button
+                                                    _hover={() => { }}
+                                                    variant="ghost"
+                                                    borderRadius={0}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
+                                    );
+                                })}
+                            </SimpleGrid>
+                            <SimpleGrid
+                                w={"100%"}
+                                columns={1}
+                                maxH={"30vh"}
+                                overflow="hidden"
+                            >
+                                {recordingOperations.map((item, idx) => {
+                                    return (
+                                        <Box
+                                            w="100%"
+                                        >
+                                            <Tooltip label={item.name} key={idx}>
+                                                <Button
+                                                    _hover={() => { }}
+                                                    variant="ghost"
+                                                    borderRadius={0}
+                                                    onClick={item.func}
+                                                    fontSize={"xl"}
+                                                    w={"100%"}
+                                                >
+                                                    {item.icon}
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
+                                    );
+                                })}
+                            </SimpleGrid>
+                        </VStack>
+                    </Box>
+                </Box>
+
+                <Box display={() => {
+                    if (isBrowser) {
+                        return "flex"
+                    } else {
+                        return "none"
+                    }
+                }} w={["0", "20vw"]} m={"2vw"}>
+                    <VStack align={"flex-start"}>
+                        <Box w={'100%'} >
+                            <chakra.div as='text' fontSize={'2xl'} color={useColorModeValue('red.500', 'red.300')}>
+                                Rack
+                            </chakra.div>
+                            <chakra.div as='text' fontSize={'2xl'} color={useColorModeValue('black', 'white')}>
+                                Tech
+                            </chakra.div>
+                        </Box>
+                        <Box w={'100%'} >
+                            <Text fontSize={'lg'}>
+                                FALA - Whiteboard
+                            </Text>
+                        </Box>
+                        <Box w={'100%'}>
+                            <Input value={canvasTitle.current} onChange={(e) => {
+                                canvasTitle.current = e.target.value
+                                forceUpdate()
+                            }} />
+                        </Box>
+                        <Grid templateColumns="repeat(10, 1fr)" gap={1}>
+                            <GridItem colSpan={4}>
+                                <InputGroup>
+                                    <InputLeftAddon children={"Rows"} />
+                                    <Input
+                                        value={gridLines.current.numRows}
+                                        type="number"
+                                        name="x"
+                                        size="md"
+                                        onChange={(e) => {
+                                            gridLines.current.numRows = parseInt(e.target.value)
+                                            forceUpdate()
+                                        }}
+                                    />
+                                </InputGroup>
+                            </GridItem>
+                            <GridItem colSpan={4}>
+                                <InputGroup>
+                                    <InputLeftAddon children={"Cols"} />
+                                    <Input
+                                        value={gridLines.current.numColumns}
+                                        type="number"
+                                        name="y"
+                                        size="md"
+                                        onChange={(e) => {
+                                            gridLines.current.numColumns = parseInt(e.target.value)
+                                            forceUpdate()
+                                        }}
+                                    />
+
+                                </InputGroup>
+                            </GridItem>
+                            <GridItem colSpan={2}>
+                                <Tooltip label="Set Grid Lines">
+                                    <Button
+                                        colorScheme="blue"
+                                        w={"100%"}
+                                        onClick={showGrids}
+                                    >
+                                        Set
+                                    </Button>
+                                </Tooltip>
+                            </GridItem>
+                        </Grid>
+                        <Box mt={2} w={'100%'}>
+                            {setSimulationMenu()}
+                        </Box>
+                    </VStack>
+                </Box>
+
+                <Box
+                    w={() => {
+                        if (isMobile || isTablet) {
+                            return "100%"
+                        } else {
+                            return "30vw"
+                        }
+                    }}
+                    minW={"30vw"}
+                    h={() => {
+                        if (isMobile || isTablet) {
+                            return "85vh"
+                        }
+                        else {
+                            return "95vh"
+                        }
+                    }}
+                    ref={boxDiv}
+                >
+                    <canvas id="canvas"></canvas>
+                </Box>
+
+            </Stack>
+
             <Box display={() => {
                 if (isMobile || isTablet) {
                     return "flex"
                 } else {
                     return "none"
                 }
-            }} bg={useColorModeValue('red.400', 'red.700')}>
+            }} bg={useColorModeValue('red.500', 'red.500')}>
                 <SimpleGrid columns={5} w='100%' py={2}>
                     <Button variant='ghost' onClick={onObjectsDrawerOpen} fontSize={'2xl'}><FaShapes /></Button>
                     <Button variant='ghost' onClick={onControlsDrawerOpen} fontSize={'2xl'}><RiRemoteControl2Line /></Button>
@@ -3022,6 +3416,33 @@ export default function Layout2D() {
                                             </Button>
                                         </GridItem>
                                     );
+                                })}
+                                {recordingOperations.map((item, idx) => {
+                                    return (
+                                        <GridItem
+                                            alignContent='start'
+                                            w='100%'
+                                            colSpan={7}
+                                            variant="ghost"
+                                            borderRadius={0}
+                                            onClick={() => {
+                                                onControlsDrawerClose()
+                                                item.func()
+                                            }}
+                                            color={currentLineColor}
+                                            fontSize={"xl"}
+                                            bg={
+                                                mode === item.name
+                                                    ? "blue.400"
+                                                    : currentBackgroundColor
+                                            }
+                                            _hover={() => { }}
+                                        >
+                                            <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>
+                                                {item.name}
+                                            </Button>
+                                        </GridItem>
+                                    )
                                 })}
                             </Grid>
                         </DrawerBody>
@@ -3211,341 +3632,6 @@ export default function Layout2D() {
 
             </Box>
 
-            <Stack direction={["column", "row"]}>
-                <Box h={dims.boxH} display={() => {
-                    if (isBrowser) {
-                        return "block"
-                    } else {
-                        return "none"
-                    }
-                }} overflow='scroll'>
-                    <Box>
-                        <SimpleGrid columns={1} overflowY="auto" overflow="hidden" >
-                            <Popover size='sm' placement='right' colorScheme='cyan' arrowSize={20}>
-                                <PopoverTrigger>
-                                    <Button borderRadius={0}
-                                        variant='ghost'
-                                        fontSize={"xl"}
-                                        color={currentLineColor}
-                                        bg={currentBackgroundColor}
-                                        _hover={() => { }}><VscSymbolProperty /></Button>
-                                </PopoverTrigger>
-                                <PopoverContent>
-                                    <PopoverArrow />
-                                    <PopoverCloseButton />
-                                    <PopoverHeader>Object Properties</PopoverHeader>
-                                    <PopoverBody>{handleProperties()}</PopoverBody>
-                                </PopoverContent>
-                            </Popover>
-                            {objectsMenu.map((item, idx) => {
-                                return (
-                                    <Box w={"100%"}>
-                                        <Tooltip label={item.name} key={idx}>
-                                            <Button
-                                                variant="ghost"
-                                                borderRadius={0}
-                                                onClick={item.func}
-                                                color={currentLineColor}
-                                                fontSize={"xl"}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                                _hover={() => { }}
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                        {idx === 1 || idx === objectsMenu.length - 1 ? (
-                                            <Divider
-                                                my={5}
-                                                w={"1%"}
-                                            />
-                                        ) : null}
-                                    </Box>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Box>
-                        <SimpleGrid
-                            columns={1}
-                            overflowY="auto"
-                            overflow="hidden"
-                        >
-                            <Popover placement='right' colorScheme='cyan' arrowSize={20}>
-                                <PopoverTrigger>
-                                    <Button borderRadius={0}
-                                        fontSize={"xl"}
-                                        w={"100%"}
-                                        color={currentLineColor}
-                                        bg={currentBackgroundColor}
-                                        _hover={() => { }}><AiOutlineBgColors /></Button>
-                                </PopoverTrigger>
-                                <PopoverContent>
-                                    <PopoverArrow />
-                                    <PopoverCloseButton />
-                                    <PopoverHeader>Change Court's Background Color</PopoverHeader>
-                                    <PopoverBody>{selectCanvasBackground()}</PopoverBody>
-                                </PopoverContent>
-                            </Popover>
-                        </SimpleGrid>
-                    </Box>
-                    <Box>
-                        <SimpleGrid
-                            columns={1}
-                            overflowY="auto"
-                            overflow="hidden"
-                        >
-                            {canvasControlMenu.map((item, idx) => {
-                                return (
-                                    <Box w={"100%"}>
-                                        <Tooltip label={item.name} key={item}>
-                                            <Button
-                                                borderRadius={0}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                                _hover={() => { }}
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                </Box>
-
-                <Box display={() => {
-                    if (isBrowser) {
-                        return "block"
-                    } else {
-                        return "none"
-                    }
-                }}>
-                    <Box display={["none", "none", "flex"]}>
-                        <SimpleGrid columns={1} overflowY="auto" overflow="scroll">
-                            {simulationRefs.map((item, idx) => {
-                                return (
-                                    <Box w={"100%"} >
-                                        <Tooltip label={item.name} key={idx}>
-                                            <Button
-                                                _hover={() => { }}
-                                                variant="ghost"
-                                                borderRadius={0}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                    </Box>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Box display={["none", "none", "flex"]} alignContent="center">
-                        <SimpleGrid
-                            columns={1}
-                            overflowY="auto"
-                            overflow="hidden"
-                        >
-                            {simulationOptions.map((item, idx) => {
-                                return (
-                                    <Box w={"100%"} >
-                                        <Tooltip label={item.name} key={idx}>
-                                            <Button
-                                                _hover={() => { }}
-                                                borderRadius={0}
-                                                onClick={item.func}
-                                                fontSize={"xl"}
-                                                w={"100%"}
-                                                color={currentLineColor}
-                                                bg={
-                                                    mode === item.name
-                                                        ? "blue.400"
-                                                        : currentBackgroundColor
-                                                }
-                                            >
-                                                {item.icon}
-                                            </Button>
-                                        </Tooltip>
-                                        {idx === simulationOptions.length - 1 ? (
-                                            <Divider
-                                                my={5}
-                                                w={"1%"}
-                                            // borderColor="blue.400"
-                                            // borderWidth="2px"
-                                            />
-                                        ) : null}
-                                    </Box>
-                                );
-                            })}
-                        </SimpleGrid>
-                    </Box>
-                    <Box display={["none", "none", "flex"]}>
-                        <VStack flexGrow={1}>
-                            <SimpleGrid columns={1} overflow="hidden">
-                                {simulationOperations.map((item, idx) => {
-                                    return (
-                                        <Box bg="white" w="100%" display={item.name === "Undo" && runFlag.current === true ? "none" : "flex"}>
-                                            <Tooltip label={item.name} key={idx}>
-                                                <Button
-                                                    _hover={() => { }}
-                                                    variant="ghost"
-                                                    borderRadius={0}
-                                                    onClick={item.func}
-                                                    fontSize={"xl"}
-                                                    w={"100%"}
-                                                >
-                                                    {item.icon}
-                                                </Button>
-                                            </Tooltip>
-                                            {idx === simulationOperations.length - 1 ? (
-                                                <Divider
-                                                    my={5}
-                                                    w={"1%"}
-                                                // borderColor="blue.400"
-                                                // borderWidth="2px"
-                                                />
-                                            ) : null}
-                                        </Box>
-                                    );
-                                })}
-                            </SimpleGrid>
-                            <SimpleGrid
-                                w={"100%"}
-                                columns={1}
-                                maxH={"30vh"}
-                                overflow="hidden"
-                            >
-                                {advancedSimulationOperations.map((item, idx) => {
-                                    return (
-                                        <Box
-
-                                            w="100%"
-                                            display={
-                                                showAllFootworks.current || showAllRallies.current
-                                                    ? "flex"
-                                                    : "none"
-                                            }
-                                        >
-                                            <Tooltip label={item.name} key={idx}>
-                                                <Button
-                                                    _hover={() => { }}
-                                                    variant="ghost"
-                                                    borderRadius={0}
-                                                    onClick={item.func}
-                                                    fontSize={"xl"}
-                                                    w={"100%"}
-                                                >
-                                                    {item.icon}
-                                                </Button>
-                                            </Tooltip>
-                                        </Box>
-                                    );
-                                })}
-                            </SimpleGrid>
-                        </VStack>
-                    </Box>
-                </Box>
-
-                <Box display={() => {
-                    if (isBrowser) {
-                        return "flex"
-                    } else {
-                        return "none"
-                    }
-                }} w={["0", "30vw"]} m={"2vw"}>
-                    <VStack align={"flex-start"}>
-                        <Box w={'100%'}>
-                            <Input value={canvasTitle.current} onChange={(e) => {
-                                canvasTitle.current = e.target.value
-                                forceUpdate()
-                            }} />
-                        </Box>
-                        <Grid templateColumns="repeat(10, 1fr)" gap={1}>
-                            <GridItem colSpan={4}>
-                                <InputGroup>
-                                    <InputLeftAddon children={"Rows"} />
-                                    <Input
-                                        value={gridLines.current.numRows}
-                                        type="number"
-                                        name="x"
-                                        size="md"
-                                        onChange={(e) => {
-                                            gridLines.current.numRows = parseInt(e.target.value)
-                                            forceUpdate()
-                                        }}
-                                    />
-                                </InputGroup>
-                            </GridItem>
-                            <GridItem colSpan={4}>
-                                <InputGroup>
-                                    <InputLeftAddon children={"Cols"} />
-                                    <Input
-                                        value={gridLines.current.numColumns}
-                                        type="number"
-                                        name="y"
-                                        size="md"
-                                        onChange={(e) => {
-                                            gridLines.current.numColumns = parseInt(e.target.value)
-                                            forceUpdate()
-                                        }}
-                                    />
-
-                                </InputGroup>
-                            </GridItem>
-                            <GridItem colSpan={2}>
-                                <Tooltip label="Set Grid Lines">
-                                    <Button
-                                        colorScheme="blue"
-                                        w={"100%"}
-                                        onClick={showGrids}
-                                    >
-                                        Set
-                                    </Button>
-                                </Tooltip>
-                            </GridItem>
-                        </Grid>
-                        <Box mt={2} w={'100%'}>
-                            {setSimulationMenu()}
-                        </Box>
-                    </VStack>
-                </Box>
-
-                <Box
-                    w={() => {
-                        if (isMobile || isTablet) {
-                            return "100vw"
-                        } else {
-                            return "30vw"
-                        }
-                    }}
-                    minW={"30vw"}
-                    h={"90vh"}
-                    ref={boxDiv}
-                >
-                    <canvas id="canvas"></canvas>
-                </Box>
-
-            </Stack>
 
             {/* Modal to take the user input for naming the rally or footwork */}
             <Modal
@@ -3599,7 +3685,6 @@ export default function Layout2D() {
                     <ModalBody>
                         <Input value={canvasTitle.current} onChange={(e) => {
                             canvasTitle.current = e.target.value
-                            saveSettings.current.name = e.target.value
                             forceUpdate()
                         }} />
                         <Checkbox mt={3} onChange={(e) => {
@@ -3623,6 +3708,9 @@ export default function Layout2D() {
                             <option value='image/jpg'>
                                 JPG
                             </option>
+                            <option value='text/plain'>
+                                JSON
+                            </option>
                         </Select>
 
                     </ModalBody>
@@ -3633,7 +3721,7 @@ export default function Layout2D() {
                         </Button>
                         <Button
                             colorScheme="blue"
-                            onClick={saveCanvas}
+                            onClick={downloadCanvas}
                             onMouseUp={onNameControlClose}
                         >
                             Download
