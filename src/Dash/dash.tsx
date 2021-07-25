@@ -58,7 +58,7 @@ export default function Dash() {
     }]
     return (
         <Router>
-            <Box display={'flex'} bg={useColorModeValue('red.500', 'red.500')} pl={2}>
+            <Box display={'flex'} bg={useColorModeValue('red.500', 'red.500')} pl={2} h={10}>
                 <chakra.div as='text' fontSize={'2xl'} color={useColorModeValue('whiteAlpha.800', 'black')}>
                     Rack
                 </chakra.div>

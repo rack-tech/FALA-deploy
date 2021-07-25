@@ -3065,7 +3065,7 @@ export default function Layout3D(props) {
                         if (isMobile || isTablet) {
                             return "85vh"
                         } else {
-                            return "95vh"
+                            return "90vh"
                         }
                     }}
                     ref={boxDiv}

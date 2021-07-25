@@ -3165,7 +3165,7 @@ export default function Layout2D() {
                         </SimpleGrid>
                     </Box>
                     <Box display={["none", "none", "flex"]}>
-                        <VStack flexGrow={1}>
+                        <VStack>
                             <SimpleGrid columns={1} overflow="hidden">
                                 {simulationOperations.map((item, idx) => {
                                     return (
@@ -3308,7 +3308,7 @@ export default function Layout2D() {
                             return "85vh"
                         }
                         else {
-                            return "95vh"
+                            return "90vh"
                         }
                     }}
                     ref={boxDiv}
