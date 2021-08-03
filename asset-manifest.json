@@ -1,0 +1,29 @@
+{
+  "files": {
+    "main.css": "/static/css/main.d9606108.chunk.css",
+    "main.js": "/static/js/main.cecbda12.chunk.js",
+    "main.js.map": "/static/js/main.cecbda12.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.c8ea6edd.js",
+    "runtime-main.js.map": "/static/js/runtime-main.c8ea6edd.js.map",
+    "static/js/2.fa42179a.chunk.js": "/static/js/2.fa42179a.chunk.js",
+    "static/js/2.fa42179a.chunk.js.map": "/static/js/2.fa42179a.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/main.d9606108.chunk.css.map": "/static/css/main.d9606108.chunk.css.map",
+    "static/js/2.fa42179a.chunk.js.LICENSE.txt": "/static/js/2.fa42179a.chunk.js.LICENSE.txt",
+    "static/media/3d_court.8276496c.svg": "/static/media/3d_court.8276496c.svg",
+    "static/media/3d_court_colored_flat.57e6aa9d.svg": "/static/media/3d_court_colored_flat.57e6aa9d.svg",
+    "static/media/Badminton_Court.82d3bb86.svg": "/static/media/Badminton_Court.82d3bb86.svg",
+    "static/media/Basic-Demonstration.efdab64b.svg": "/static/media/Basic-Demonstration.efdab64b.svg",
+    "static/media/Side_view.e6be5eae.svg": "/static/media/Side_view.e6be5eae.svg",
+    "static/media/Side_view_flat.e8013e19.svg": "/static/media/Side_view_flat.e8013e19.svg",
+    "static/media/badminton_shuttle.147c0e01.png": "/static/media/badminton_shuttle.147c0e01.png",
+    "static/media/left_boot.11670476.png": "/static/media/left_boot.11670476.png",
+    "static/media/right_boot.f332f0d3.png": "/static/media/right_boot.f332f0d3.png"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.c8ea6edd.js",
+    "static/js/2.fa42179a.chunk.js",
+    "static/css/main.d9606108.chunk.css",
+    "static/js/main.cecbda12.chunk.js"
+  ]
+}
