@@ -7,7 +7,6 @@ import Shuttle from "../assets/badminton_shuttle.png";
 import LeftBoot from "../assets/left_boot.png"
 import RightBoot from "../assets/right_boot.png";
 import download from 'downloadjs'
-import canvasRecord from "canvas-record"
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -97,7 +96,10 @@ import {
     GiGears,
     IoIosListBox,
     BiCustomize,
-    AiOutlineDownload
+    AiOutlineDownload,
+    BsPlayFill,
+    BsStopFill,
+    BsDownload
 } from "react-icons/all";
 
 import {
@@ -146,6 +148,8 @@ export default function Layout3D(props) {
 
     // Canvas Recording Object
     const canvasRecorder = useRef(null)
+    const canvasStream = useRef(null)
+    const canvasrecordingChunks = useRef(null)
 
     // Variable to store current selected object
     const [currentObject, setCurrentObject] = useState(null);
@@ -228,17 +232,46 @@ export default function Layout3D(props) {
      */
 
     const initCanvas = () => {
+
+        fabric.Image.prototype.getSvgSrc = function () {
+            return this.toDataURLforSVG();
+        };
+
+        fabric.Image.prototype.toDataURLforSVG = function (options) {
+            var el = fabric.util.createCanvasElement();
+            el.width = this._element.naturalWidth || this._element.width;
+            el.height = this._element.naturalHeight || this._element.height;
+            el.getContext("2d").drawImage(this._element, 0, 0);
+            var data = el.toDataURL(options);
+            return data;
+        };
+
         fabric.Object.prototype.transparentCorners = false
         fabric.Object.prototype.cornerColor = '#00008B'
         fabric.Object.prototype.cornerStyle = 'circle'
         fabric.Object.prototype.borderColor = 'red'
+
         const canvas = new fabric.Canvas("canvas", {
             height: dims.boxH,
             width: dims.boxW,
         });
-        if (props.flat === "Front") {
+
+        console.log(props.loader)
+        if (props.loader !== undefined) {
+            console.log("Loader is ON")
+            canvas.loadSVGFromURL(props.loader.canvasData, ((objects, options) => {
+                for (let i=0;i < objects.length; i++) {
+                    canvas.add(objects[i])
+                }
+            }))
+            canvas.renderAll()
+            arrayOfRallies.current = props.loader.rallyData
+            arrayOfFootwork.current = props.loader.footworkData
+        }
+        else if (props.flat === "Front") {
             console.log("Flat : ", props.flat)
             fabric.loadSVGFromURL(FrontCourt3d, (objects, options) => {
+                
                 var obj = fabric.util.groupSVGElements(objects, options);
                 obj.set({
                     selectable: false,
@@ -286,6 +319,8 @@ export default function Layout3D(props) {
                 canvas.add(obj)
                 canvas.setBackgroundColor('white')
             })
+        } else {
+            canvas.setBackgroundColor("white")
         }
         return canvas;
     };
@@ -803,6 +838,7 @@ export default function Layout3D(props) {
                 })
                 img.scaleToWidth(40)
                 canvas.add(img);
+                canvas.renderAll()
                 addObjectToArray(img);
             })
 
@@ -900,6 +936,7 @@ export default function Layout3D(props) {
             let file;
             if (saveSettings.current.exportAs === 'text/plain') {
                 let content = {
+                    canvasTitle: canvasTitle.current,
                     canvasData: canvasJSON.current,
                     rallyData: arrayOfRallies.current,
                     footworkData: arrayOfFootwork.current
@@ -2651,6 +2688,69 @@ export default function Layout3D(props) {
     ];
 
     /**
+     * Recording Function Definitions
+     */
+
+    const startCanvasRecording = () => {
+        if (canvasRecorder.current !== null) {
+            if (window.confirm("Do you want to remove previous recording?")) {
+                canvasStream.current = document.querySelector('canvas').captureStream(60)
+                canvasrecordingChunks.current = []
+                let options = { mimeType: 'video/webm' }
+                canvasRecorder.current = new MediaRecorder(canvasStream.current, options)
+                canvasRecorder.current.ondataavailable = (event) => {
+                    console.log("Data Available")
+                    if (event.data.size > 0) {
+                        canvasrecordingChunks.current.push(event.data)
+                    }
+                }
+            }
+        } else {
+            canvasStream.current = document.querySelector('canvas').captureStream(60)
+            canvasrecordingChunks.current = []
+            let options = { mimeType: 'video/webm' }
+            canvasRecorder.current = new MediaRecorder(canvasStream.current, options)
+            canvasRecorder.current.ondataavailable = (event) => {
+                console.log("Data Available")
+                if (event.data.size > 0) {
+                    canvasrecordingChunks.current.push(event.data)
+                }
+            }
+        }
+        canvasRecorder.current.start(1000)
+    }
+
+    const pauseOrResumeCanvasRecording = () => {
+        if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+            window.alert("Start Recording before pausing!")
+            return
+        }
+        if (canvasRecorder.current.state === "paused") {
+            canvasRecorder.current.resume()
+        } else {
+            canvasRecorder.current.pause()
+        }
+        forceUpdate()
+    }
+
+    const stopCanvasRecording = () => {
+        if (canvasRecorder.current === null) {
+            window.alert("Nothing to Pause")
+        } else {
+            canvasRecorder.current.stop()
+            forceUpdate()
+        }
+    }
+
+    const downloadCanvasRecording = () => {
+        let blob = new Blob(canvasrecordingChunks.current, {
+            type: "video/mp4"
+        })
+        download(blob, canvasTitle.current + ".mp4")
+    }
+
+
+    /**
      * Advanced operation modes
      */
 
@@ -2658,44 +2758,23 @@ export default function Layout3D(props) {
         {
             name: "Start Recording",
             icon: <BiVideoRecording />,
-            p: "Run All",
-            func: () => {
-                if (canvasRecorder.current !== null) {
-                    if (window.confirm("Do you want to remove previous recording?")) {
-                        canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
-                            filename: canvasTitle.current,
-                            frameRate: 120,
-                            recorderOptions: {
-                                MimeType: "video/webm;codecs=h264"
-                            }
-                        })
-                        canvasRecorder.current.start()
-                    }
-                } else {
-                    canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
-                        filename: canvasTitle.current,
-                        frameRate: 120,
-                        recorderOptions: {
-                            MimeType: "video/mp4"
-                        }
-                    })
-                    canvasRecorder.current.start()
-                }
-            },
+            func: startCanvasRecording,
         },
         {
             name: "Pause Recording",
-            icon: <BsPauseFill />,
-            p: "Pause Recording",
-            func: () => {
-                if (canvasRecorder.current === null) {
-                    window.alert("Nothing to Pause")
-                } else {
-                    canvasRecorder.current.recorder.filename = canvasTitle.current
-                    canvasRecorder.current.stop()
-                }
-            },
+            icon: (canvasRecorder.current === null || canvasRecorder.current.state === "paused") ? <BsPlayFill /> : <BsPauseFill />,
+            func: pauseOrResumeCanvasRecording,
         },
+        {
+            name: "Stop Recording",
+            icon: <BsStopFill />,
+            func: stopCanvasRecording,
+        },
+        {
+            name: "Download Recording",
+            icon: <BsDownload />,
+            func: downloadCanvasRecording,
+        }
     ];
 
     /**
@@ -2999,6 +3078,19 @@ export default function Layout3D(props) {
                                         >
                                             <Tooltip label={item.name} key={idx}>
                                                 <Button
+                                                    bg={() => {
+                                                        if (idx === 0) {
+                                                            if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+                                                                return (colorMode === "light") ? "gray.300" : "gray.500"
+                                                            } else if (canvasRecorder.current.state === "recording") {
+                                                                return "red.400"
+                                                            } else if (canvasRecorder.current.state === "paused") {
+                                                                return "cyan.400"
+                                                            } else {
+                                                                return "green.400"
+                                                            }
+                                                        } else return null
+                                                    }}
                                                     _hover={() => { }}
                                                     variant="ghost"
                                                     borderRadius={0}
@@ -3177,6 +3269,19 @@ export default function Layout3D(props) {
                                 {recordingOperations.map((item, idx) => {
                                     return (
                                         <GridItem
+                                            bg={() => {
+                                                if (idx === 0) {
+                                                    if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+                                                        return (colorMode === "light") ? "gray.300" : "gray.500"
+                                                    } else if (canvasRecorder.current.state === "recording") {
+                                                        return "red.400"
+                                                    } else if (canvasRecorder.current.state === "paused") {
+                                                        return "cyan.400"
+                                                    } else {
+                                                        return "green.400"
+                                                    }
+                                                } else return (colorMode === "light" ? "white" : "gray.800")
+                                            }}
                                             alignContent='start'
                                             w='100%'
                                             colSpan={7}
@@ -3188,11 +3293,6 @@ export default function Layout3D(props) {
                                             }}
                                             color={currentLineColor}
                                             fontSize={"xl"}
-                                            bg={
-                                                mode === item.name
-                                                    ? "blue.400"
-                                                    : currentBackgroundColor
-                                            }
                                             _hover={() => { }}
                                         >
                                             <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>

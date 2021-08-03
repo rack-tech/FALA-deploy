@@ -4,7 +4,6 @@ import Shuttle from "../assets/badminton_shuttle.png";
 import LeftBoot from "../assets/left_boot.png"
 import RightBoot from "../assets/right_boot.png";
 import download from 'downloadjs'
-import canvasRecord from "canvas-record"
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
@@ -99,6 +98,9 @@ import {
     BiCustomize,
     AiOutlineDownload,
     BiVideoRecording,
+    BsStopFill,
+    BsDownload,
+    BsPlayFill
 } from "react-icons/all";
 
 import {
@@ -148,6 +150,8 @@ export default function Layout2D() {
 
     // Canvas Recording Object
     const canvasRecorder = useRef(null)
+    const canvasStream = useRef(null)
+    const canvasrecordingChunks = useRef([])
 
     // Variable to store current selected object
     const [currentObject, setCurrentObject] = useState(null);
@@ -2826,6 +2830,68 @@ export default function Layout2D() {
     ];
 
     /**
+     * Recording Function Definitions
+     */
+
+    const startCanvasRecording = () => {
+        if (canvasRecorder.current !== null) {
+            if (window.confirm("Do you want to remove previous recording?")) {
+                canvasStream.current = document.querySelector('canvas').captureStream(60)
+                canvasrecordingChunks.current = []
+                let options = { mimeType: 'video/webm' }
+                canvasRecorder.current = new MediaRecorder(canvasStream.current, options)
+                canvasRecorder.current.ondataavailable = (event) => {
+                    console.log("Data Available")
+                    if (event.data.size > 0) {
+                        canvasrecordingChunks.current.push(event.data)
+                    }
+                }
+            }
+        } else {
+            canvasStream.current = document.querySelector('canvas').captureStream(60)
+            canvasrecordingChunks.current = []
+            let options = { mimeType: 'video/webm' }
+            canvasRecorder.current = new MediaRecorder(canvasStream.current, options)
+            canvasRecorder.current.ondataavailable = (event) => {
+                console.log("Data Available")
+                if (event.data.size > 0) {
+                    canvasrecordingChunks.current.push(event.data)
+                }
+            }
+        }
+        canvasRecorder.current.start(1000)
+    }
+
+    const pauseOrResumeCanvasRecording = () => {
+        if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+            window.alert("Start Recording before pausing!")
+            return
+        }
+        if (canvasRecorder.current.state === "paused") {
+            canvasRecorder.current.resume()
+        } else {
+            canvasRecorder.current.pause()
+        }
+        forceUpdate()
+    }
+
+    const stopCanvasRecording = () => {
+        if (canvasRecorder.current === null) {
+            window.alert("Nothing to Pause")
+        } else {
+            canvasRecorder.current.stop()
+            forceUpdate()
+        }
+    }
+
+    const downloadCanvasRecording = () => {
+        let blob = new Blob(canvasrecordingChunks.current, {
+            type: "video/mp4"
+        })
+        download(blob, canvasTitle.current + ".mp4")
+    }
+
+    /**
      * Advanced operation modes
      */
 
@@ -2833,44 +2899,23 @@ export default function Layout2D() {
         {
             name: "Start Recording",
             icon: <BiVideoRecording />,
-            p: "Run All",
-            func: () => {
-                if (canvasRecorder.current !== null) {
-                    if (window.confirm("Do you want to remove previous recording?")) {
-                        canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
-                            filename: canvasTitle.current,
-                            frameRate: 120,
-                            recorderOptions: {
-                                MimeType: "video/webm;codecs=h264"
-                            }
-                        })
-                        canvasRecorder.current.start()
-                    }
-                } else {
-                    canvasRecorder.current = canvasRecord(document.getElementById('canvas'), {
-                        filename: canvasTitle.current,
-                        frameRate: 120,
-                        recorderOptions: {
-                            MimeType: "video/mp4"
-                        }
-                    })
-                    canvasRecorder.current.start()
-                }
-            },
+            func: startCanvasRecording,
         },
         {
             name: "Pause Recording",
-            icon: <BsPauseFill />,
-            p: "Pause Recording",
-            func: () => {
-                if (canvasRecorder.current === null) {
-                    window.alert("Nothing to Pause")
-                } else {
-                    canvasRecorder.current.recorder.filename = canvasTitle.current
-                    canvasRecorder.current.stop()
-                }
-            },
+            icon: (canvasRecorder.current === null || canvasRecorder.current.state === "paused") ? <BsPlayFill /> : <BsPauseFill />,
+            func: pauseOrResumeCanvasRecording,
         },
+        {
+            name: "Stop Recording",
+            icon: <BsStopFill />,
+            func: stopCanvasRecording,
+        },
+        {
+            name: "Download Recording",
+            icon: <BsDownload />,
+            func: downloadCanvasRecording,
+        }
     ];
 
     /**
@@ -3199,6 +3244,19 @@ export default function Layout2D() {
                                         >
                                             <Tooltip label={item.name} key={idx}>
                                                 <Button
+                                                    bg={() => {
+                                                        if (idx === 0) {
+                                                            if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+                                                                return (colorMode === "light") ? "gray.300" : "gray.500"
+                                                            } else if (canvasRecorder.current.state === "recording") {
+                                                                return "red.400"
+                                                            } else if (canvasRecorder.current.state === "paused") {
+                                                                return "cyan.400"
+                                                            } else {
+                                                                return "green.400"
+                                                            }
+                                                        } else return null
+                                                    }}
                                                     _hover={() => { }}
                                                     variant="ghost"
                                                     borderRadius={0}
@@ -3420,6 +3478,19 @@ export default function Layout2D() {
                                 {recordingOperations.map((item, idx) => {
                                     return (
                                         <GridItem
+                                            bg={() => {
+                                                if (idx === 0) {
+                                                    if (canvasRecorder.current === null || canvasRecorder.current.state === "inactive") {
+                                                        return (colorMode === "light") ? "gray.300" : "gray.500"
+                                                    } else if (canvasRecorder.current.state === "recording") {
+                                                        return "red.400"
+                                                    } else if (canvasRecorder.current.state === "paused") {
+                                                        return "cyan.400"
+                                                    } else {
+                                                        return "green.400"
+                                                    }
+                                                } else return (colorMode === "light" ? "white" : "gray.800")
+                                            }}
                                             alignContent='start'
                                             w='100%'
                                             colSpan={7}
@@ -3431,11 +3502,6 @@ export default function Layout2D() {
                                             }}
                                             color={currentLineColor}
                                             fontSize={"xl"}
-                                            bg={
-                                                mode === item.name
-                                                    ? "blue.400"
-                                                    : currentBackgroundColor
-                                            }
                                             _hover={() => { }}
                                         >
                                             <Button variant='ghost' w='100%' justifyContent='flex-start' leftIcon={item.icon}>

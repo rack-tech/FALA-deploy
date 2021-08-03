@@ -7,8 +7,11 @@ import {
     Image,
 } from '@chakra-ui/react';
 
+import { isTablet } from 'react-device-detect';
+
 
 export default function ButtonComponent(props) {
+    console.log(props.content.head === "2D Court")
     return (
         <Center py={12}>
             <Stack align={'center'}>
@@ -16,10 +19,16 @@ export default function ButtonComponent(props) {
                     role={'group'}
                     p={4}
                     maxW={'90%'}
-                    minH={'50vh'}
+                    minH={() => {
+                        if (isTablet) {
+                            return '70vh'
+                        } else {
+                            return '50vh'
+                        }
+                    }}
                     // overflow='scroll'
                     w={'full'}
-                    bg={'whiteAlpha.400'}
+                    bg={'whiteAlpha.800'}
                     boxShadow={'xl'}
                     border='1px'
                     rounded={'lg'}
@@ -51,7 +60,6 @@ export default function ButtonComponent(props) {
                             },
                         }}>
                         <Image
-                            rounded={'lg'}
                             height={'100%'}
                             width={'100%'}
                             objectFit={'contain'}
